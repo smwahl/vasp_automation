@@ -1,0 +1,29 @@
+#! /bin/bash
+# Scales a unitcell by a uniform fraction on all vectors, modifies 
+# existis).
+# Usage orthcell: [a] 
+# Usage orthcell: [a] [b] [c]
+
+cp POSCAR oldPOSCAR
+#sed -i '2,5d' POSCAR
+#sed -i '2,5d' REFCAR
+
+mult=$1
+
+echo Warning: do not use repeatedly
+
+if [ $# -ne 1 ]
+then
+    echo Usage: scalecell [scale factor]
+else
+    awk -v x=$mult '{if (NR==2) {  printf "  %.16f \n", $1*x; } else { print $0 } }' POSCAR > $$.tmp
+    mv $$.tmp POSCAR
+    if [ -e REFCAR ]
+    then
+        awk -v x=$mult '{if (NR==2) {  printf "  %.16f \n", $1*x; } else { print $0 } }' REFCAR > $$.tmp
+        mv $$.tmp REFCAR
+    fi
+fi
+rm -f $$.tmp
+
+

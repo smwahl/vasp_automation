@@ -1,0 +1,29 @@
+#! /bin/bash
+
+# Usage: scalevelocities [old T] [new T]
+# Warning: dont use repeatedly
+
+kB=.00008617342301212761
+
+if  [[ -n "$1" && "$1" =~ ^[0-9]+$ ]]
+then
+
+    f=tmpPOSCAR
+
+    N=$(awk 'FNR==6 {{ for (i=1; i<=NF; i++) { sum+= $i } }; print sum}' POSCAR  )
+
+    head -$(( $N + 8 )) POSCAR > $f
+
+    awk -v N=$N -v T1=$1 -v T2=$2 'NR>=(9+N) && NR<=(8+2*N) { c = sqrt(T2/T1); $1 = c * $1; $2 = c * $2; $3 = c * $3; printf "  %.16f  %.16f  %.16f \n", $1, $2, $3}' POSCAR >> $f
+    cp POSCAR POSCAR_oldT #incase of mistake
+    mv $f POSCAR
+    echo  Warning: dont use repeatedly
+
+    # Modify INCAR file
+    sig=$(echo "$kB * $2" | bc -l)
+    replaceline TEBEG "TEBEG = $2    # $1" INCAR
+    replaceline "^SIGMA" "SIGMA = $sig     # $2" INCAR
+
+else
+    echo  "Usage: scalevelocities [old T] [new T]"
+fi

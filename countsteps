@@ -1,0 +1,23 @@
+#!/bin/bash
+# Proper header for a Bash script.
+
+dir=$(pwd)
+#cmd=$1
+#echo $dir
+
+for arg in ${@:1}
+do
+    #echo "$dir/$arg"
+    cd "$dir/$arg"
+    echo "$(pwd):"
+    #if [ -d out1 ]
+    #then
+        grep -c -s  LOOP+ OUTCAR out*/OUTCAR  
+    #else
+    #    grep -c LOOP+ OUTCAR
+    #fi
+    total=$(grep -c -s LOOP+ OUTCAR out*/OUTCAR | awk 'BEGIN { FS = ":"}; { sum+=$2} END {print sum}')
+    echo "$arg total: $total"
+done
+
+cd $dir

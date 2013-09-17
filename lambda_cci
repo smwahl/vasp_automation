@@ -1,0 +1,35 @@
+#! /bin/tcsh
+# Script adapted from B. Militzer for block averaging and printing the effective potential for a number
+# of DFT cci integration runs at various lambda values
+
+set dir = "/home/swahl/workspace"
+set b = ~/scripts/blocker
+
+set runs = "$*"
+set f  = tmp_$$_CC
+set f2 = tmp_$$_CC2
+cd  $dir
+foreach r ( $runs )
+    set T = `awk '/TEBEG/{print $3}' $r/INCAR`
+    set rs = `head -10000 $r/OUTCAR | awk '/NELECT/{Ne = $3}/volume of cell/{V=$NF}END{print exp(log(V/Ne*3/4/3.14159265)/3)/0.529177208607388}'`
+    # awk -vrs=$rs -vT=$T '/MIX_EFFPOT/{la=$(3);if (1.0*la==0.0){printf("rs= %4.2f T= %6.0f\n",rs,T)}}' $r/INCAR
+    echo -n $r " " 
+    awk '/MIX_EFFPOT/{printf(" %5.3f ",$(3))}' $r/INCAR
+    rm -f $f $f2 
+    touch $f
+    foreach i (out{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20} .)
+        if (-e $r/$i/OUTCAR) then 
+            awk '/effks diff/{print $6}' $r/$i/OUTCAR >> $f  
+        endif
+    end 
+    set n  = `wc $f | awk '{print $1}'`
+    set ne = `echo $n | awk '{print int($1*4/5)}'`
+    set dt   = `awk '/POTIM/{print $3}' $r/INCAR`
+    echo $n $ne $dt | awk '{printf(" t= %4.2f %4.2f ",$1*$3/1000,$2*$3/1000);}'
+    set NP   = `head -6 $r/POSCAR | tail -1 | awk '{for(i=1;i<=NF;i++){n+=$i};print n}'`
+    tail -$ne $f > $f2 
+    $b $f2 1 | awk '/Final/{f=27.21138342791109;printf("<dV/cell>= %12.6f %9.6f Ha",$4/f,$6/f);}'
+    awk '{x=$1;sx+=x;sxx+=x*x;n++}END{f=27.21138342791109;if (n>0){sx/=n;sxx/=n;}v=sqrt(sxx-sx*sx);printf(" var(dV/cell)= %8.6f Ha = %6.3f eV",v/f,v)}' $f2 
+    find $r -name "OUTCAR" -a -mmin -30 | awk 'END{if (f) {printf(" **RUN** ");}; printf("\n")}{f++}' | tail -1 #; echo " " 
+end
+

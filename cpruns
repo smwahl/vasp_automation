@@ -1,0 +1,53 @@
+#!/bin/bash
+#  Copy run directories to a range starting with a specified directory,
+#  change names in run.blah script, copy CONTCAR to POSCAR
+
+# Usage:
+# cpruns [first new directory] [List of directories to be copied]
+#
+# note: only copy directories with the same species for the time being.
+
+dir="/home/swahl/workspace"
+
+first=$(echo $1 | sed 's/^[A-Za-z]*//')
+spec=$(echo $1 | sed 's/[0-9].*//')
+
+num=$first
+list=""
+for arg in ${@:2}
+do
+    i="$spec$num"
+    list="$list$i "
+    if [ -e "$dir/$spec$num" ]
+    then
+        echo "Directory $spec$num already exists"
+    else
+        echo creating $spec$num
+        mkdir $dir/$i
+        cp -p $dir/$arg/{INCAR,POTCAR,KPOINTS,run*,Poten*,REFCAR,log0*} $dir/$i 2>/dev/null
+        sed -i 's/#PBS -N.*/#PBS -N '$i'/g' $dir/$i/run*
+
+        #cp $dir/$arg/CONTCAR $dir/$i/POSCAR
+        #copy CONTCAR to POSCAR emiting everything after velocities
+        if [ -e "$dir/$arg/CONTCAR" ]
+        then
+            lines=$(awk 'FNR==6 {{ for (i=1; i<=NF; i++) { sum+= $i } }; print (2*sum+8)}'  $dir/$arg/CONTCAR )
+            #echo $lines
+            head -$lines $dir/$arg/CONTCAR > $dir/$i/POSCAR
+        else
+            echo Warning: no CONTCAR, copying POSCAR instead
+            cp -p $dir/$arg/POSCAR $dir/$i/POSCAR 
+        fi
+
+        #replace linked potentials
+        if [ -e $dir/$i/Poten_11.dat ]
+        then
+            rm -rf $dir/$i/Poten_??.dat
+            for pot in $dir/$i/Poten*_eV_for_VASP.dat;do n=$(echo $pot | sed 's/.*Poten_[0-9]\+_\([0-9]\+\)_eV_for_VASP.dat/\1/'); ln -s $pot $dir/$i/Poten_$n.dat; done
+        fi
+    fi
+    num=$(($num + 1))
+done
+echo $list
+runs="$runs $list"
+cd $dir

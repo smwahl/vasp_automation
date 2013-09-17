@@ -1,0 +1,14 @@
+#! /bin/bash
+# Determine next unused filename for a given prefix
+
+dir=$(pwd)
+cd /home/swahl/workspace
+out=""
+for prefix in "$@"
+do
+    last=$(ls | grep '^'$prefix'[0-9][0-9][0-9]$' | tail -1 | sed 's/[^0-9]//g')
+    next=$[$last+1]
+    out="$out$prefix$next  "
+done
+echo $out
+cd $dir

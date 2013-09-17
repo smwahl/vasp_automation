@@ -1,0 +1,37 @@
+#! /bin/bash
+
+# Scales POSCAR velocities from T in INCAR to a new T, and modifies T and Sigma in INCAR
+
+# Usage: scalevelocities [new T]
+# Warning: dont use repeatedly
+
+kB=.00008617342301212761
+
+if  [[ -n "$1" && "$1" =~ ^[0-9]+$ ]]
+then
+
+    f=tmpPOSCAR
+
+    N=$(awk 'FNR==6 {{ for (i=1; i<=NF; i++) { sum+= $i } }; print sum}' POSCAR  )
+    T1=$(grep "TEBEG" INCAR | awk '{print $3}')
+    T2=$1;
+
+    head -$(( $N + 8 )) POSCAR > $f
+
+    awk -v N=$N -v T1=$T1 -v T2=$T2 'NR>=(9+N) && NR<=(8+2*N) { c = sqrt(T2/T1); $1 = c * $1; $2 = c * $2; $3 = c * $3; printf "  %.16f  %.16f  %.16f \n", $1, $2, $3}' POSCAR >> $f
+    cp POSCAR POSCAR_oldT #incase of mistake
+    mv $f POSCAR
+    echo  Warning: dont use repeatedly
+
+    # Modify INCAR file
+    sig=$(echo "$kB * $T2" | bc -l)
+    replaceline TEBEG "TEBEG = $T2    # $T1" INCAR
+    replaceline "SIGMA" "SIGMA = $sig     # $T2 K" INCAR
+
+    echo "T = $T1  -->  $T2 K"
+    echo "TEBEG = $T2    # $T1"
+    echo "SIGMA = $sig     # $T2 K"
+
+else
+    echo  "Usage: scalevelocities [old T] [new T]"
+fi

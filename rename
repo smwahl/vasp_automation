@@ -1,0 +1,4 @@
+#! /bin/bash
+# Change all names in run script to match 
+
+for i in $* ; do sed -i 's/#PBS -N.*/#PBS -N '$i'/g' $i/run*; done

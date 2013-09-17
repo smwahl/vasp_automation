@@ -1,0 +1,23 @@
+#! /bin/bash
+
+# Sum up columntwise TD values for a reaction
+# Usage: rxnsum inputfile [rxn coefficients in the same order]
+# Inputfile has rows for each species with order: [variable name] value error [variable name 2] ...
+
+f=$1
+f2=tmprxnsum
+
+a=${@:2}
+toeV=27.211384
+
+max=$(echo "$a" | awk '{ max = $1; for(i=1; i <=NF; i++){ if($i^2 > max^2 ){ max = $i}};if(max < 0){max = max*-1};print max}')
+
+awk -v prefactors="$a" '{ split(prefactors,c," "); for(i=1; i<=NF; i++) {if($i == $i+0){sum[i] +=$i*c[NR];i++;if(c[NR] < 0){sum[i] += -1*$i*c[NR]}else{sum[i] +=$i*c[NR]}} else{sum[i] = $i}}} END {OFTM = "%.8f"; for(i=1; i in sum; i++) {if(sum[i] == sum[i]+0){ printf " %.8f", sum[i] }else{ printf "\n%s", sum[i]} }; printf "\n"}' $f | sed '1d' > $f2
+
+echo Total System:
+awk -v conv=$toeV '{OFMT = "%.8f"; print "    ", $0, "Ha ", $2*conv, $3*conv+1e-9, "eV"}' $f2 #| sort
+
+echo per formula unit:
+awk -v conv=$toeV -v n=$max '{OFMT = "%.8f"; print "    ", $1, $2/n, $3/n+1e-9, "Ha ", $2*conv/n, $3*conv/n+1e-9, "eV"}' $f2 #| sort
+
+rm -f $f2

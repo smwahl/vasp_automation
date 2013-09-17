@@ -1,0 +1,5 @@
+#!/bin/bash 
+#Clear all output files prior to srarting a new vasp run
+
+rm *.o*   CHG  CHGCAR  CONTCAR  DOSCAR  EIGENVAL  IBZKPT  OSZICAR  out  out.* OUTCAR  PCDAT  vasprun.xml  WAVECAR  XDATCAR  h_on_left.data in.bs  in.mv XDATCARCP DYNMAT DYNMAT.*
+#rm -rf out{1..20}

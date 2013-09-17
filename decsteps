@@ -1,0 +1,6 @@
+#!/bin/bash
+# Decrease number of steps between successive vasp runs
+
+n=$(grep -c LOOP+ OUTCAR out*/OUTCAR | awk 'BEGIN { FS = ":"}; { sum+=$2} END {print sum}')
+awk -v n="$n" '{if ($1 == "NSW") {diff = $3 - n; $3 = diff} print }' INCAR > tmp
+mv tmp INCAR
