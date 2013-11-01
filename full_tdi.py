@@ -170,7 +170,9 @@ for line in stdout.split('\n')[-(nrow+1):-1]:
         pass
 
 cmc_tmp = pd.DataFrame(cmcResultInfo,columns=['id','result','F_an','F_cmc','F_class','result_file'])
-cmc = cmc_tmp.set_index('id',inplace=True)
+cmc_tmp.set_index('id',inplace=True)
+
+cmc = cmc.join(cmc_tmp)
 
 # link tdi entries to their respectice cmc runs
 # This is best done by matching temperature and volume, however the output of volume from
@@ -181,9 +183,50 @@ tmp_tdi = tdi.set_index(tdi['volume'].apply(np.round,args=[5]))
 tmp_cmc = cmc.set_index(cmc['volume'].apply(np.round,args=[5]))
 tmp_tdi['cmc_id'] = tmp_cmc['id']
 
-tdi = tmp_tdi.set_index('dft_id')
+tdi = tmp_tdi.set_index('dft_id',drop=False)
 
 # Calculate the thermodynamic integration
+
+tdi['num_lambda'] = tdi.dft_to_cl_ids.apply(len)
+
+#timestr = time.strftime("%Y%m%d-%H%M%S")
+
+
+tmp_cmc_file = "/u/smwahl/dat/tmp_cmc.dat"
+tdi_result_file = "/u/smwahl/dat/tdi_" + timestr + ".dat"
+print tdi_result_file
+
+f = open(tdi_result_file,'w')
+
+
+for idx, row in tdi.iterrows():
+    tmpf = open(tmp_cmc_file,'w')
+#    print row
+    nlam = row['num_lambda']
+    runs = row['dft_to_cl_ids']
+    Pkbar = row['P_target']*10. # convert pressure from GPa to kbar
+
+    (stdout, stderr) = Popen([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)]+runs, stdout=PIPE).communicate()
+    print stdout
+
+    f.write(stdout)
+
+    tmpf.close()
+
+f.close()
+
+
+# save DataFrames
+tdi.save('tdi.df')
+cmc.save('cmc.df')
+dft.save('dft.df')
+dft_eos.save('dft_eos.df')
+
+# load dataFrames
+tdi = pd.load('tdi.df')
+cmc = pd.load('cmc.df')
+dft = pd.load('dft.df')
+dft_eos = pd.load('dft_eos.df')
 
 
 # save database file
