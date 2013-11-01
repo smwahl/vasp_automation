@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 import socket
 
+from subprocess import Popen, PIPE
+import time
+
 host = socket.gethostname()
 
 runDir="/u/smwahl/scr/workspace"
@@ -31,8 +34,7 @@ dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
 target_pressures = [ 50., 100., 400. ]
 
-
-from subprocess import Popen, PIPE
+# Get information about cmc runs
 
 (stdout, stderr) = Popen([runinfo]+cmcRuns, stdout=PIPE).communicate()
 print stdout
@@ -141,7 +143,6 @@ dft_eos = dft_eos.sort(['system','P_target','T'])
 
 # Generate cmc results, saving to a file
 
-import time
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
 cmc_result_file = "/u/smwahl/dat/cmc_" + timestr + ".dat"
@@ -200,16 +201,37 @@ f = open(tdi_result_file,'w')
 
 
 for idx, row in tdi.iterrows():
+
+    # store cmc results in a temporary file
     tmpf = open(tmp_cmc_file,'w')
-#    print row
+    cmcrun = row['cmc_id']
+    tmpf.write(cmc.loc[cmcrun]['result'])
+    tmpf.close()
+
+    # run lambda_cci
     nlam = row['num_lambda']
     runs = row['dft_to_cl_ids']
     Pkbar = row['P_target']*10. # convert pressure from GPa to kbar
 
+    print ' '.join([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)]+runs)
+
     (stdout, stderr) = Popen([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)]+runs, stdout=PIPE).communicate()
     print stdout
 
+    # store results
+    outlines = stdout.split('\n')
+    dVlines = [line.spliti() for line in outlines[3:3+nlam] ]
+    lams = [ float(x[1]) for x in dVlines]
+    dVcell = [ ( float(x[6]), float(x[7]) ) for x in dVlines ]
+    dV_var_eV = [ float(x[13]) for x in dVlines ]
+
+    for line in outlines:
+        sline = line.split()
+
     f.write(stdout)
+
+    # store the location of the tdi*.dat file
+#    row['tdi_result_file'] = tdi_result_file
 
     tmpf.close()
 

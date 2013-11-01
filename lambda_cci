@@ -1,35 +1,120 @@
 #! /bin/tcsh
 # Script adapted from B. Militzer for block averaging and printing the effective potential for a number
 # of DFT cci integration runs at various lambda values
+# ussage:
+# lambda_cci [cmc data file] [# of lambda points] [pressure in kbar] run1 run2 ....
 
-set dir = "/home/swahl/workspace"
+# NUMBER OF LAMBDA POINTS
+#set npts = 5 
+#set P = 1000  # pressure in kbar
+set cmcfile = $1
+set npts = $2
+set P = $3
+#set cmcfile = "cmc.dat"
+
+set dir = "/u/smwahl/scr/workspace"
 set b = ~/scripts/blocker
+set integ = /u/smwahl/scripts/cci6
 
+shift
+shift 
+shift
 set runs = "$*"
+
+echo "$cmcfile"
+echo "$runs"
+echo "collecting DFT run statistics"
+
+
 set f  = tmp_$$_CC
 set f2 = tmp_$$_CC2
+set f3 = cci_$$.dat
+set out = cci.dat
 cd  $dir
+rm -f $f3 $out
+touch $f3 $out
 foreach r ( $runs )
     set T = `awk '/TEBEG/{print $3}' $r/INCAR`
     set rs = `head -10000 $r/OUTCAR | awk '/NELECT/{Ne = $3}/volume of cell/{V=$NF}END{print exp(log(V/Ne*3/4/3.14159265)/3)/0.529177208607388}'`
     # awk -vrs=$rs -vT=$T '/MIX_EFFPOT/{la=$(3);if (1.0*la==0.0){printf("rs= %4.2f T= %6.0f\n",rs,T)}}' $r/INCAR
-    echo -n $r " " 
-    awk '/MIX_EFFPOT/{printf(" %5.3f ",$(3))}' $r/INCAR
+    echo -n $r " "  >> $out
+    awk '/MIX_EFFPOT/{printf(" %5.3f ",$(3))}' $r/INCAR >> $out
     rm -f $f $f2 
     touch $f
     foreach i (out{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20} .)
         if (-e $r/$i/OUTCAR) then 
             awk '/effks diff/{print $6}' $r/$i/OUTCAR >> $f  
+            awk '/V_KS-V_EP/{print $4}' $r/$i/OUTCAR >> $f
+            awk '/totenminuseffpot/{print $3}' $r/$i/OUTCAR >> $f  
         endif
     end 
     set n  = `wc $f | awk '{print $1}'`
     set ne = `echo $n | awk '{print int($1*4/5)}'`
     set dt   = `awk '/POTIM/{print $3}' $r/INCAR`
-    echo $n $ne $dt | awk '{printf(" t= %4.2f %4.2f ",$1*$3/1000,$2*$3/1000);}'
+    echo $n $ne $dt | awk '{printf(" t= %4.2f %4.2f ",$1*$3/1000,$2*$3/1000);}'  >> $out
     set NP   = `head -6 $r/POSCAR | tail -1 | awk '{for(i=1;i<=NF;i++){n+=$i};print n}'`
     tail -$ne $f > $f2 
-    $b $f2 1 | awk '/Final/{f=27.21138342791109;printf("<dV/cell>= %12.6f %9.6f Ha",$4/f,$6/f);}'
-    awk '{x=$1;sx+=x;sxx+=x*x;n++}END{f=27.21138342791109;if (n>0){sx/=n;sxx/=n;}v=sqrt(sxx-sx*sx);printf(" var(dV/cell)= %8.6f Ha = %6.3f eV",v/f,v)}' $f2 
-    find $r -name "OUTCAR" -a -mmin -30 | awk 'END{if (f) {printf(" **RUN** ");}; printf("\n")}{f++}' | tail -1 #; echo " " 
+    $b $f2 1 | awk '/Final/{f=27.21138342791109;printf("<dV/cell>= %12.6f %9.6f Ha",$4/f,$6/f);}'  >> $out
+    awk '{x=$1;sx+=x;sxx+=x*x;n++}END{f=27.21138342791109;if (n>0){sx/=n;sxx/=n;}v=sqrt(sxx-sx*sx);printf(" var(dV/cell)= %8.6f Ha = %6.3f eV",v/f,v)}' $f2  >> $out
+
+    find $r -name "OUTCAR" -a -mmin -30 | awk 'END{if (f) {printf(" **RUN** ");}; printf("\n")}{f++}' | tail -1   >> $out #; echo " " 
+    #    find $r -name "OUTCAR" -a -mmin -30 | awk 'END{if (f) {printf(" **RUN** ");}; printf("\n")}{f++}' | tail -1 >> $f3 
+end 
+
+
+set f4 = tmp_$$_CC3
+set out2 = lambda_cci.out
+rm -f $out2
+touch $out2
+set lines = `wc -l < $out`
+@ Nsys = ( $lines / $npts )
+set lam0 = ""
+foreach sys ( `seq 1 $Nsys` )
+    rm -f $f4
+    touch $f4
+    @ first = ( 1 + ( $sys - 1 ) * $npts )
+    @ last = ( $sys * $npts )
+    sed -n $first','$last'p' $out | sort -k2,2 > $f4
+    sed -n $first','$last'p'  $out | sort -k2,2 
+    set lam0 = "$lam0 "`tail -1 $f4 | awk '{print $1}'`" "
+    echo " "
+    cci6 $f4 2 7 8 | tail -1
+    cci6 $f4 2 7 8 | grep "Using linear dV interpolation"
+    echo " "
+    cci6 $f4 2 7 8 | tail -1 >> $out2
 end
+
+echo " "
+cat $out
+echo " "
+
+echo $lam0
+
+set f5 = tmp_$$_CC5
+set f6 = tmp_$$_CC6
+set f7 = tmp_$$_CC7
+set f8 = tmp_$$_CC8
+
+echo "Using cmc results in $cmcfile"
+paste $cmcfile $out2 > $f5
+
+
+echo " "
+cat $f5
+echo " "
+
+awk '{OFMT = "%.6f"; print "F_DFT=", $9 + $19, $21}' $f5 > $f6
+
+
+/u/smwahl/scripts/eos1 $lam0 | awk '{OFMT = "%.6f"; PV= '$P' * $10 * 2.2937127e-05;  print "PV+Gint= ", PV,0,$20,$21,$22}'
+
+/u/smwahl/scripts/eos1 $lam0 | awk '{OFMT = "%.6f"; PV= '$P' * $10 * 2.2937127e-05;  print "PV+Gint= ", PV,0,$20,$21,$22}' > $f7
+paste -d ' ' $f6 $f7  | awk  '{ OFMT = "%.6f"; G=$2+$5; dG = $3+$6; TS=$8-$2; dTS = $9+$3; print $0, "G=", G, dG, "TS=", TS, dTS}' > $f8
+
+echo " "
+echo "Energies in Ha"
+cat $f8
+echo " "
+echo "Energies in eV"
+awk  '{ OFMT = "%.6f"; HtoeV = 27.211384; G=$2+$5; dG = $3+$6; TS=$8-$2; dTS = $9+$3; print $1, $2*HtoeV, $3*HtoeV,$4, $5*HtoeV, $6*HtoeV, $7, $8*HtoeV,$9*HtoeV,  "G=", G*HtoeV, dG*HtoeV, "TS=", TS*HtoeV, dTS*HtoeV}' $f8
 
