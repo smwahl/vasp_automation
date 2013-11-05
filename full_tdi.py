@@ -199,6 +199,7 @@ print tdi_result_file
 
 f = open(tdi_result_file,'w')
 
+result_list = []
 
 for idx, row in tdi.iterrows():
 
@@ -220,22 +221,38 @@ for idx, row in tdi.iterrows():
 
     # store results
     outlines = stdout.split('\n')
-    dVlines = [line.spliti() for line in outlines[3:3+nlam] ]
+    dVlines = [line.split() for line in outlines[3:3+nlam] ]
     lams = [ float(x[1]) for x in dVlines]
     dVcell = [ ( float(x[6]), float(x[7]) ) for x in dVlines ]
+    dV_var = [ float(x[10]) for x in dVlines ]
     dV_var_eV = [ float(x[13]) for x in dVlines ]
 
     for line in outlines:
         sline = line.split()
+        if len(sline) > 0:
+            if sline[0] == 'Quadratic':
+                 F_dft_cl = ( float(sline[8]), float(sline[10]) )     
+            if sline[0] == 'F_DFT=':
+                F_dft = (float(sline[1]), float(sline[2] ) ) 
+                P_targetV = (float(sline[4]), float(sline[5]) ) 
+                U_dft =  (float(sline[7]), float(sline[8]) ) 
+                G_dft = (float(sline[10]), float(sline[11]) ) 
+                break
+
+    result_list.append([idx, lams, dVcell, dV_var, dV_var_eV, F_dft_cl, \
+        F_dft,P_targetV,U_dft,G_dft,tdi_result_file ])
+    print result_list[-1]
 
     f.write(stdout)
 
-    # store the location of the tdi*.dat file
-#    row['tdi_result_file'] = tdi_result_file
-
-    tmpf.close()
-
 f.close()
+
+
+print result_list
+tdi_tmp = pd.DataFrame(result_list,columns=['id', 'lambdas', 'dVcell', 'dV_var', \
+        'dV_var_eV', 'F_cl_dft', 'F_dft','P_targetV','U_dft','G_dft','result_file'] )
+tdi_tmp.set_index('id',inplace=True)
+tdi = tdi.join(tdi_tmp)
 
 
 # save DataFrames
