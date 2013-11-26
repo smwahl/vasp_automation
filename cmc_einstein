@@ -1,0 +1,52 @@
+#! /bin/tcsh
+
+# Script for analyzing the rsultsfrom 
+
+set runs1 = "$*"
+set cci3 = ~/scripts/cci3
+set cci6 = ~/scripts/cci6
+set einstein = ~/scripts/vasp_automation/einstein.py
+cd ~/scr/workspace
+set out  = `pwd`"/"cmc.txt
+set out2 = `pwd`"/"cmc2.txt
+/bin/rm $out $out2
+touch $out 
+foreach r ( $runs1 )
+    echo $r
+    pushd $r > /dev/null
+    echo -n $r " " >> $out
+    set spec = `grep RH POTCAR | awk '{printf "%s ",$2}' | sed 's/[=:]//g'` 
+    set nspec = $#spec
+    echo $spec $nspec
+    awk '/T =/{printf " T[K]= " $NF}' run.scr >> $out
+    set T = `awk '/T =/{print $NF}' run.scr`
+    set K = `grep "Force constant" log01 | awk -vORS=' ' '{print $9}'`
+    set natoms = `awk 'NR==6' POSCAR`
+    echo "python ~/scripts/einstein.py $T $spec $natoms $K | awk '{print $3}'"
+    python $einstein $T $spec $natoms $K | awk '{print $3}'
+    set F0 = `python $einstein $T $spec $natoms $K | awk '{print $3}'`
+    echo "K= $K F0 = $F0"
+    echo $F0  | awk '{printf " F0= "$NF," "}' >> $out
+    grep "Force constant" log01 | awk -vORS=' ' '{print $0}'
+    @ c = ( $nspec * 2 + 10 )
+    @ cV = ( $nspec * 2 + 12 )
+    @ cVE = ( $nspec * 2 + 13 )
+    echo ' '
+    echo $c $cV $cVE
+    grep dV/cell= cmc_0.*.log cmc_1.*.log | awk -v T=$T -v c=$c '{if ($(c-5)=="inf") {$(c-5)=T; $c="0.0    ";} print}' | sort -n -k $c > cmc.dat
+    $cci3 cmc.dat $c $cV $cVE 
+    $cci3 cmc.dat $c $cV $cVE | & awk '/spline interpolation/{printf " F_cmc= "$NF}' >> $out
+    echo "$cci3 cmc.dat $c $cV $cVE"
+    echo " " >> $out
+    popd > /dev/null
+end
+echo ' '
+awk '{F = $NF+$(NF-2);if (NF==11) {F+=$(NF-4)}; printf("%s F_class= %10.6f Ha\n",$0,F)}' $out | column -t
+
+#awk '{F = $NF+$(NF-2);if (NF==11) {F+=$(NF-4)}; printf("%s F_class= %10.6f\n",$0,F)}' $out > $out2
+#echo ' '
+#awk '{toeV = 27.21138385465; $5 = $5 * toeV; $7 = $7 * toeV; $9 = $9 * toeV; printf("%s %s %s %s %10.5f %s %10.5f %s %10.5f %s\n",$1,$2,$3,$4,$5,$6,$7,$8,$9,"eV")}' $out2 | column -t
+#echo ' '
+#exit
+
+

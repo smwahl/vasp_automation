@@ -8,6 +8,7 @@ import subprocess
 import pandas as pd
 import numpy as np
 import socket
+import os
 
 from subprocess import Popen, PIPE
 import time
@@ -21,15 +22,19 @@ saveDir="/u/smwahl/dat/"
 runinfo="/u/smwahl/scripts/vasp_automation/runinfo"
 eos="/u/smwahl/scripts/eos1"
 cmc_result="/u/smwahl/code/python/vasp_automation/cmc_result"
+cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
 lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
 
-cmcStr = "lFe299 lFe300 lFe301 lFe302 lFe303 lFe304 lFe305 lFe306 lFe307 lFeMgO398 lFeMgO399 lFeMgO400 lFeMgO401 lFeMgO402 lFeMgO403 lFeMgO404 lFeMgO405 lFeMgO406 lMgO267 lMgO268 lMgO269 lMgO270 lMgO271 lMgO272 lMgO273 lMgO274"
-cmcRuns = cmcStr.split(' ')
+# Run directories
+cmcStr = "lFeMgO434 lFeMgO435 lFeMgO436 lFe334 lFe335 lFe336"
+cmcEinsteinStr = "MgO176 MgO177 MgO178 MgO179"
+cmcEinsteinRuns = cmcEinsteinStr.split()
+cmcPPRuns = cmcStr.split()
+cmcRuns = cmcEinsteinRuns + cmcPPRuns
 cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-dftStr = "lFe254 lFe255 lFe256 lFe257 lFe258 lFe259 lFe260 lFe261 lFe262 lFe263 lFe264 lFe265 lFe266 lFe267 lFe268 lFe269 lFe270 lFe271 lFe272 lFe273 lFe274 lFe275 lFe276 lFe277 lFe278 lFe279 lFe280 lFe281 lFe282 lFe283 lFe284 lFe285 lFe286 lFe287 lFe288 lFe289 lFe290 lFe291 lFe292 lFe293 lFe294 lFe295 lFe296 lFe297 lFe298 lFeMgO353 lFeMgO354 lFeMgO355 lFeMgO356 lFeMgO357 lFeMgO358 lFeMgO359 lFeMgO360 lFeMgO361 lFeMgO362 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO373 lFeMgO374 lFeMgO375 lFeMgO376 lFeMgO377 lFeMgO378 lFeMgO379 lFeMgO380 lFeMgO381 lFeMgO382 lFeMgO383 lFeMgO384 lFeMgO385 lFeMgO386 lFeMgO387 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO393 lFeMgO394 lFeMgO395 lFeMgO396 lFeMgO397 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lMgO232 lMgO233 lMgO234 lMgO235 lMgO236 lMgO237 lMgO238 lMgO239 lMgO240 lMgO241 lMgO242 lMgO243 lMgO244 lMgO245 lMgO246 lMgO247 lMgO248 lMgO249 lMgO250 lMgO251 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lMgO262 lMgO263 lMgO264 lMgO265 lMgO266"
-
-dftRuns = dftStr.split(' ')
+dftStr = "MgO156 MgO157 MgO158 MgO159 MgO160 MgO161 MgO162 MgO163 MgO164 MgO165 MgO166 MgO167 MgO168 MgO169 MgO170 MgO171 MgO172 MgO173 MgO174 MgO175  lFe319 lFe320 lFe321 lFe322 lFe323 lFe324 lFe325 lFe326 lFe327 lFe328 lFe329 lFe330 lFe331 lFe332 lFe333 lFeMgO419 lFeMgO420 lFeMgO421 lFeMgO422 lFeMgO423 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO429 lFeMgO430 lFeMgO431 lFeMgO432 lFeMgO433 "
+dftRuns = dftStr.split()
 dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
 target_pressures = [ 50., 100., 400. ]
@@ -41,7 +46,7 @@ print stdout
 
 cmcInfo = []
 for line in stdout.split('\n'):
-    sline = line.split(' ')
+    sline = line.split()
     try:
         assert sline[3] == 'cmc'
 #        print sline
@@ -60,27 +65,66 @@ cmc['dir'] = cmcDirs
 cmc.set_index('id',inplace=True,drop=False)
 
 
-# Get information from runinfo
+# Get information from about dft runs
 (stdout, stderr) = Popen([runinfo]+dftRuns, stdout=PIPE).communicate()
 print stdout
 
 dftInfo = []
 for line in stdout.split('\n'):
-    sline = line.split(' ')
+    sline = line.split()
     try:
-        assert sline[3] == 'cci,' # check for correct format
+        assert sline[3] == 'cci' or sline[3] == 'einstein' # check for correct format
         id = sline[0]
         system = sline[1].replace('[','')
         temp = float(sline[4].replace('T=','').replace(',','') )
         volume = float(sline[5].replace('V=','').replace(',','') ) 
         lam = float(sline[12].replace('lamd=','') )
-        dftInfo.append([id,system,temp,volume,lam,host])
+        k_spring = sline[11].replace('K=','').replace(',$','')
+        dftInfo.append([id,system,temp,volume,k_spring,lam,host])
     except:
         pass
 
 
-dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','lambda','hostname'])
+dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname'])
 dft['dir'] = dftDirs
+
+# Generate cmc results, saving to a file
+
+timestr = time.strftime("%Y%m%d-%H%M%S")
+
+cmc_result_file = "/u/smwahl/dat/cmc_" + timestr + ".dat"
+print cmc_result_file
+
+(stdout1, stderr) = Popen([cmc_einstein]+cmcEinsteinRuns, stdout=PIPE).communicate()
+(stdout2, stderr) = Popen([cmc_result]+cmcPPRuns, stdout=PIPE).communicate()
+print stdout1
+print stdout2
+
+f = open(cmc_result_file,'w')
+f.write(stdout1)
+f.write(stdout2)
+f.close()
+
+nrow = cmc.shape[0]
+
+cmcResultInfo = []
+for line in stdout2.split('\n')[-(nrow+1):-1]:
+    sline = line.split()
+    print sline
+    try:
+        id = sline[0]
+        result_line = line
+        F_an = float(sline[4])
+        F_cmc = float(sline[6])
+        F_class = float(sline[8])
+        cmcResultInfo.append([id,result_line,F_an,F_cmc,F_class,cmc_result_file])
+    except:
+        pass
+
+cmc_tmp = pd.DataFrame(cmcResultInfo,columns=['id','result','F_an','F_cmc','F_class','result_file'])
+cmc_tmp.set_index('id',inplace=True)
+
+cmc = cmc.join(cmc_tmp)
 
 # Find each separate integration
 
@@ -141,39 +185,7 @@ tdi['P_target'] = dft_eos['P_target']
 tdi = tdi.sort(['system','P_target','temp'])
 dft_eos = dft_eos.sort(['system','P_target','T'])
 
-# Generate cmc results, saving to a file
 
-timestr = time.strftime("%Y%m%d-%H%M%S")
-
-cmc_result_file = "/u/smwahl/dat/cmc_" + timestr + ".dat"
-print cmc_result_file
-
-(stdout, stderr) = Popen([cmc_result]+cmcRuns, stdout=PIPE).communicate()
-print stdout
-
-f = open(cmc_result_file,'w')
-f.write(stdout)
-f.close()
-
-nrow = cmc.shape[0]
-
-cmcResultInfo = []
-for line in stdout.split('\n')[-(nrow+1):-1]:
-    sline = line.split()
-    try:
-        id = sline[0]
-        result_line = line
-        F_an = float(sline[4])
-        F_cmc = float(sline[6])
-        F_class = float(sline[8])
-        cmcResultInfo.append([id,result_line,F_an,F_cmc,F_class,cmc_result_file])
-    except:
-        pass
-
-cmc_tmp = pd.DataFrame(cmcResultInfo,columns=['id','result','F_an','F_cmc','F_class','result_file'])
-cmc_tmp.set_index('id',inplace=True)
-
-cmc = cmc.join(cmc_tmp)
 
 # link tdi entries to their respectice cmc runs
 # This is best done by matching temperature and volume, however the output of volume from
@@ -255,11 +267,34 @@ tdi_tmp.set_index('id',inplace=True)
 tdi = tdi.join(tdi_tmp)
 
 
+
+# load dataFrames
+tdi_old = pd.load('tdi.df')
+cmc_old = pd.load('cmc.df')
+dft_old = pd.load('dft.df')
+dft_eos_old = pd.load('dft_eos.df')
+
+# combine new cmc and dft tables with existing ones
+cmc_comb = cmc_old.append(cmc)
+dft_comb = dft_old.append(dft)
+tdi_comb = tdi_old.append(tdi)
+dft_eos_comb = dft_eos_old.append(dft_eos)
+
 # save DataFrames
-tdi.save('tdi.df')
-cmc.save('cmc.df')
-dft.save('dft.df')
-dft_eos.save('dft_eos.df')
+tdi.save(saveDir+'tdi_'+timestr+'.df')
+cmc.save(saveDir+'cmc'+timestr+'.df')
+dft.save(saveDir+'dft'+timestr+'.df')
+dft_eos.save(saveDir+'dft_eos'+timestr+'.df')
+
+tdi_comb.save(saveDir+'tdi_all'+timestr+'.df')
+cmc_comb.save(saveDir+'cmc_all'+timestr+'.df')
+dft_comb.save(saveDir+'dft_all'+timestr+'.df')
+dft_eos_comb.save(saveDir+'dft_eos_all'+timestr+'.df')
+
+tdi_comb.save('tdi.df')
+cmc_comb.save('cmc.df')
+dft_comb.save('dft.df')
+dft_eos_comb.save('dft_eos.df')
 
 # load dataFrames
 tdi = pd.load('tdi.df')
@@ -268,6 +303,3 @@ dft = pd.load('dft.df')
 dft_eos = pd.load('dft_eos.df')
 
 
-# save database file
-
-#pd.write_frame

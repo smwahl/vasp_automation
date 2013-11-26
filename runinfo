@@ -3,7 +3,7 @@
 # Print information about vasp runs given a list of directories
 # Usage: runinfo Fe129 Fe130 ...
 
-dir="/home/swahl/workspace"
+dir="/u/smwahl/scr/workspace"
 f="$dir/tmp_$(date "+%H_%M_%S")"
 #f2="$dir/tmp2_$(date "+%H_%M_%S")"
 for arg in ${@:1}
@@ -11,81 +11,75 @@ do
     run="$dir/$arg"
     if [[ -f "$run/POSCAR" && -f "$run/INCAR" && -f "$run/KPOINTS" && -f "$run/POTCAR" ]] 
     then
-        touch $f;
-        if [ -d $run/out1 ]
-        then
-            cat $run/out1/{INCAR,POSCAR} $run/run* | sed -e 's/#.*//'  > $f
-        else
-            cat $run/{INCAR,POSCAR,run*} | sed -e 's/#.*//'  > $f
-        fi
+    touch $f;
+    if [ -d $run/out1 ]
+    then
+        cat $run/out1/{INCAR,POSCAR} $run/run* | sed -e 's/#.*//'  > $f
+    else
+        cat $run/{INCAR,POSCAR,run*} | sed -e 's/#.*//'  > $f
+    fi
 
-        # information from INCAR file    
-        sys=$(grep -i System $f | awk '{print $3}')
-        ec=$(grep ENCUT $f | awk '{print $3}')
-        Nstep=$(grep NSW $f | awk '{print $3}')
-        tstep=$(grep POTIM $f | awk '{print $3}')
-        T=$(grep TEBEG $f | awk '{print $3}')
-        P=$(grep EXTERNAL_PRESSURE $f | awk '{print $3}')
-        isif=$(grep ISIF $f | awk '{print $3}')
-        ialgo=$(grep IAlGO $f | awk '{print $3}')
-        nbands=$(grep NBANDS $f | awk '{print $3}')
-        stress=$(grep PSTRESS $f | awk '{print $3}') 
-        ibrion=$(grep IBRION $f | awk '{print $3}')
+    # information from INCAR file    
+    sys=$(grep -i System $f | awk '{print $3}')
+    ec=$(grep ENCUT $f | awk '{print $3}')
+    Nstep=$(grep NSW $f | awk '{print $3}')
+    tstep=$(grep POTIM $f | awk '{print $3}')
+    T=$(grep TEBEG $f | awk '{print $3}')
+    P=$(grep EXTERNAL_PRESSURE $f | awk '{print $3}')
+    isif=$(grep ISIF $f | awk '{print $3}')
+    ialgo=$(grep IAlGO $f | awk '{print $3}')
+    nbands=$(grep NBANDS $f | awk '{print $3}')
+    PS=$(grep PSTRESS $f | awk '{print $3}') 
+    ibrion=$(grep IBRION $f | awk '{print $3}')
 
-        kpt=$(awk 'FNR == 4 {print $1 $2 $3}' $run/KPOINTS)
-
-
-        # Thermodynamic integration
-        lam=$(grep EFFPOT $f | awk '{print $3}')
-        K=$(grep SPRING_POT $f | awk '{print $3 $4}')
-        
-        t=$(echo "$tstep * $Nstep" | bc)
+    kpt=$(awk 'FNR == 4 {print $1,"," $2,"," $3}' $run/KPOINTS | sed -e 's/ //g')
 
 
+    # Thermodynamic integration
+    lam=$(grep EFFPOT $f | awk '{print $3}')
+#    K=$(grep KSPRING $f | awk '{print $3 $4}')
+    K=$(grep KSPRING $f | awk '{ s = ""; for (i = 3; i <= NF; i++) s = s $i ","; print s }')
+    
+    t=$(echo "$tstep * $Nstep" | bc)
 
-        # Read system information
+
+    # Read system information
         s=$(awk '/RH/{print $2 " "}' $run/POTCAR | sed -e 's/[=:]//g' | awk -vORS='' 1)
         n=$(awk 'FNR == 6 {print}' $run/POSCAR)
         sn=$(echo "$s $n" | awk '{for(i=1;i<=(NF/2);i++) { print $i $(NF/2+i) }}' | awk -vORS='' 1)
 
 
+    # Read cell information
+    l=$(awk 'FNR == 2 {print $1}' $run/POSCAR)
+    a=($(awk 'FNR == 3 {print}' $run/POSCAR))
+    b=($(awk 'FNR == 4 {print}' $run/POSCAR))
+    c=($(awk 'FNR == 5 {print}' $run/POSCAR))
+    #V=$(echo "$l^3*(${a[0]}*(${b[1]}*${c[2]} - ${b[2]}*${c[1]})-${b[0]}*(${a[1]}*${c[2]} - ${a[2]}*${c[1]})+${c[0]}*(${a[1]}*${b[2]} - ${a[2]}*${b[1]}))" | bc)
+    V=$(echo "$l^3*((${a[0]})*((${b[1]})*(${c[2]}) - (${b[2]})*(${c[1]}))-(${b[0]})*((${a[1]})*(${c[2]}) - (${a[2]})*(${c[1]}))+(${c[0]})*((${a[1]})*(${b[2]}) - (${a[2]})*(${b[1]})))" | bc)
 
-        # Read cell information
-        l=$(awk 'FNR == 2 {print $1}' $run/POSCAR)
-        a=($(awk 'FNR == 3 {print}' $run/POSCAR))
-        b=($(awk 'FNR == 4 {print}' $run/POSCAR))
-        c=($(awk 'FNR == 5 {print}' $run/POSCAR))
-        #V=$(echo "$l^3*(${a[0]}*(${b[1]}*${c[2]} - ${b[2]}*${c[1]})-${b[0]}*(${a[1]}*${c[2]} - ${a[2]}*${c[1]})+${c[0]}*(${a[1]}*${b[2]} - ${a[2]}*${b[1]}))" | bc)
-        V=$(echo "$l^3*((${a[0]})*((${b[1]})*(${c[2]}) - (${b[2]})*(${c[1]}))-(${b[0]})*((${a[1]})*(${c[2]}) - (${a[2]})*(${c[1]}))+(${c[0]})*((${a[1]})*(${b[2]}) - (${a[2]})*(${b[1]})))" | bc)
 
-
-        #print information
-        cmc=$(grep cmc $run/run*)
-        if [ -n "$cmc" ]
-        then
-            echo "$arg [$sn $sys]: cmc , T=$T, Vi=$V"
-        elif [ -n "$P" ] #constant P
-        then
-            echo "$arg [$sn $sys]: constP, P=$P, T=$T, Vi=$V, Nstep=$Nstep, tstep=$tstep, cutoff=$ec eV, kpts=$kpt, isif=$isif"
-        elif [ -n "$K" ] #einstein cci
-        then
-            echo "$arg [$sn $sys]: einstein,  T=$T, V=$V, Nstep=$Nstep, tstep=$tstep, cutoff=$ec eV, kpts=$kpt, K=$K, lamd=$lam"
-        elif [ -n "$lam" ] #pair potential cci
-        then
-            echo "$arg [$sn $sys]: cci, T=$T, V=$V, Nstep=$Nstep, tstep=$tstep, cutoff=$ec eV, K=$K, kpts=$kpt, lamd=$lam"
-        elif  [ "$ibrion" == 2 ] || [ "$ibrion" == 1 ] 
-        then
-            echo -ne "$arg [ $sn $sys]: relax,"
-            echo -ne " P=$stress,"
-            echo " Vi=$V, POTIM=$tstep, cutoff=$ec eV, kpts=$kpt, isif=$isif"
-        else # constant V
-            echo "$arg [$sn $sys]: constV, T=$T, Vi=$V, Nstep=$Nstep, tstep=$tstep, cutoff=$ec eV, kpts=$kpt"
-        fi
-    else
-        echo Problem with files in run: $run
+    #print information
+    cmc=$(grep cmc $run/run*)
+    if [ -n "$cmc" ]
+    then
+        echo "$arg [$sn $sys]: cmc , T=$T, Vi=$V"
+    elif [ -n "$P" ] #constant P
+    then
+        echo "$arg [$sn $sys]: constP P=$P T=$T Vi=$V Nstep=$Nstep tstep=$tstep cutoff=$ec eV kpts=$kpt isif=$isif"
+    elif [ -n "$K" ] #einstein cci
+    then
+        echo "$arg [$sn $sys]: einstein  T=$T V=$V Nstep=$Nstep tstep=$tstep cutoff=$ec eV kpts=$kpt K=$K lamd=$lam"
+    elif [ -n "$lam" ] #pair potential cci
+    then
+        echo "$arg [$sn $sys]: cci T=$T V=$V Nstep=$Nstep tstep=$tstep cutoff=$ec eV kpts=$kpt K=$K lamd=$lam"
+    elif [ "$ibrion" == 2 ]
+    then
+        echo "$arg [$sn $sys]: relax P=$PS Vi=$V POTIM=$tstep cutoff=$ec eV kpts=$kpt isif=$isif"
+    else # constant V
+        echo "$arg [$sn $sys]: constV T=$T Vi=$V Nstep=$Nstep tstep=$tstep cutoff=$ec eV kpts=$kpt"
     fi
+fi
     rm -f $f
 done
-
 
 echo $@
