@@ -26,14 +26,15 @@ cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
 lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
 
 # Run directories
-cmcStr = "lFeMgO434 lFeMgO435 lFeMgO436 lFe334 lFe335 lFe336"
-cmcEinsteinStr = "MgO176 MgO177 MgO178 MgO179"
+cmcStr = "lFeSiO160 lSiO161 lSiO162 lFeSiO161 lFeSiO162 lSiO163 lFeSiO163 lSiO164 lFeSiO164 lSiO165 lFeSiO165 lSiO166 lSiO167 lFeSiO166"
+
+cmcEinsteinStr = ""
 cmcEinsteinRuns = cmcEinsteinStr.split()
 cmcPPRuns = cmcStr.split()
 cmcRuns = cmcEinsteinRuns + cmcPPRuns
 cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-dftStr = "MgO156 MgO157 MgO158 MgO159 MgO160 MgO161 MgO162 MgO163 MgO164 MgO165 MgO166 MgO167 MgO168 MgO169 MgO170 MgO171 MgO172 MgO173 MgO174 MgO175  lFe319 lFe320 lFe321 lFe322 lFe323 lFe324 lFe325 lFe326 lFe327 lFe328 lFe329 lFe330 lFe331 lFe332 lFe333 lFeMgO419 lFeMgO420 lFeMgO421 lFeMgO422 lFeMgO423 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO429 lFeMgO430 lFeMgO431 lFeMgO432 lFeMgO433 "
+dftStr = "lFeSiO125 lFeSiO126 lFeSiO127 lFeSiO128 lFeSiO129 lSiO126 lSiO127 lSiO128 lSiO129 lSiO130 lSiO131 lSiO132 lSiO133 lSiO134 lSiO135 lFeSiO130 lFeSiO131 lFeSiO132 lFeSiO133 lFeSiO134 lFeSiO135 lFeSiO136 lFeSiO137 lFeSiO138 lFeSiO139 lSiO136 lSiO137 lSiO138 lSiO139 lSiO140 lFeSiO140 lFeSiO141 lFeSiO142 lFeSiO143 lFeSiO144 lSiO141 lSiO142 lSiO143 lSiO144 lSiO145 lFeSiO145 lFeSiO146 lFeSiO147 lFeSiO148 lFeSiO149 lSiO146 lSiO147 lSiO148 lSiO149 lSiO150 lFeSiO150 lFeSiO151 lFeSiO152 lFeSiO153 lFeSiO154 lSiO151 lSiO152 lSiO153 lSiO154 lSiO155 lSiO156 lSiO157 lSiO158 lSiO159 lSiO160 lFeSiO155 lFeSiO156 lFeSiO157 lFeSiO158 lFeSiO159"
 dftRuns = dftStr.split()
 dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -264,9 +265,14 @@ print result_list
 tdi_tmp = pd.DataFrame(result_list,columns=['id', 'lambdas', 'dVcell', 'dV_var', \
         'dV_var_eV', 'F_cl_dft', 'F_dft','P_targetV','U_dft','G_dft','result_file'] )
 tdi_tmp.set_index('id',inplace=True)
+
+
+# may wish to check before joining
+
 tdi = tdi.join(tdi_tmp)
 
 
+tabDir = os.path.join(runDir,'tables')
 
 # load dataFrames
 tdi_old = pd.load('tdi.df')
@@ -281,15 +287,15 @@ tdi_comb = tdi_old.append(tdi)
 dft_eos_comb = dft_eos_old.append(dft_eos)
 
 # save DataFrames
-tdi.save(saveDir+'tdi_'+timestr+'.df')
-cmc.save(saveDir+'cmc'+timestr+'.df')
-dft.save(saveDir+'dft'+timestr+'.df')
-dft_eos.save(saveDir+'dft_eos'+timestr+'.df')
+tdi.save(tabDir+'tdi_'+timestr+'.df')
+cmc.save(tabDir+'cmc'+timestr+'.df')
+dft.save(tabDir+'dft'+timestr+'.df')
+dft_eos.save(tabDir+'dft_eos'+timestr+'.df')
 
-tdi_comb.save(saveDir+'tdi_all_'+timestr+'.df')
-cmc_comb.save(saveDir+'cmc_all_'+timestr+'.df')
-dft_comb.save(saveDir+'dft_all_'+timestr+'.df')
-dft_eos_comb.save(saveDir+'dft_eos_all_'+timestr+'.df')
+tdi_comb.save(tabDir+'tdi_all_'+timestr+'.df')
+cmc_comb.save(tabDir+'cmc_all_'+timestr+'.df')
+dft_comb.save(tabDir+'dft_all_'+timestr+'.df')
+dft_eos_comb.save(tabDir+'dft_eos_all_'+timestr+'.df')
 
 tdi_comb.save('tdi.df')
 cmc_comb.save('cmc.df')
