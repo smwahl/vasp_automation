@@ -2,6 +2,8 @@
 '''Script t  consolidate and analyze classical MonteCarlo and DFT thermodynamic integration 
 using Pandas dataframes'''
 
+#cd ~/code/python/vasp_automation
+
 from parse_vasp import *
 import os
 import subprocess
@@ -272,7 +274,7 @@ tdi_tmp.set_index('id',inplace=True)
 tdi = tdi.join(tdi_tmp)
 
 
-tabDir = os.path.join(runDir,'tables')
+tabDir = os.path.join(saveDir,'tables')
 
 # load dataFrames
 tdi_old = pd.load('tdi.df')
@@ -287,15 +289,15 @@ tdi_comb = tdi_old.append(tdi)
 dft_eos_comb = dft_eos_old.append(dft_eos)
 
 # save DataFrames
-tdi.save(tabDir+'tdi_'+timestr+'.df')
-cmc.save(tabDir+'cmc'+timestr+'.df')
-dft.save(tabDir+'dft'+timestr+'.df')
-dft_eos.save(tabDir+'dft_eos'+timestr+'.df')
+tdi.save(tabDir+'/tdi_'+timestr+'.df')
+cmc.save(tabDir+'/cmc_'+timestr+'.df')
+dft.save(tabDir+'/dft_'+timestr+'.df')
+dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
 
-tdi_comb.save(tabDir+'tdi_all_'+timestr+'.df')
-cmc_comb.save(tabDir+'cmc_all_'+timestr+'.df')
-dft_comb.save(tabDir+'dft_all_'+timestr+'.df')
-dft_eos_comb.save(tabDir+'dft_eos_all_'+timestr+'.df')
+tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
+cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
+dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
+dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
 
 tdi_comb.save('tdi.df')
 cmc_comb.save('cmc.df')
