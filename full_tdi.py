@@ -100,7 +100,7 @@ print cmc_result_file
 (stdout2, stderr) = Popen([cmc_result]+cmcPPRuns, stdout=PIPE).communicate()
 print stdout1
 print stdout2
-
+np.array(
 f = open(cmc_result_file,'w')
 f.write(stdout1)
 f.write(stdout2)
