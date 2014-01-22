@@ -28,7 +28,7 @@ cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
 lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
 
 # Run directories
-cmcStr = "lFeSiO160 lSiO161 lSiO162 lFeSiO161 lFeSiO162 lSiO163 lFeSiO163 lSiO164 lFeSiO164 lSiO165 lFeSiO165 lSiO166 lSiO167 lFeSiO166"
+cmcStr = "lFe343 FeMgO443"
 
 cmcEinsteinStr = ""
 cmcEinsteinRuns = cmcEinsteinStr.split()
@@ -36,7 +36,7 @@ cmcPPRuns = cmcStr.split()
 cmcRuns = cmcEinsteinRuns + cmcPPRuns
 cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-dftStr = "lFeSiO125 lFeSiO126 lFeSiO127 lFeSiO128 lFeSiO129 lSiO126 lSiO127 lSiO128 lSiO129 lSiO130 lSiO131 lSiO132 lSiO133 lSiO134 lSiO135 lFeSiO130 lFeSiO131 lFeSiO132 lFeSiO133 lFeSiO134 lFeSiO135 lFeSiO136 lFeSiO137 lFeSiO138 lFeSiO139 lSiO136 lSiO137 lSiO138 lSiO139 lSiO140 lFeSiO140 lFeSiO141 lFeSiO142 lFeSiO143 lFeSiO144 lSiO141 lSiO142 lSiO143 lSiO144 lSiO145 lFeSiO145 lFeSiO146 lFeSiO147 lFeSiO148 lFeSiO149 lSiO146 lSiO147 lSiO148 lSiO149 lSiO150 lFeSiO150 lFeSiO151 lFeSiO152 lFeSiO153 lFeSiO154 lSiO151 lSiO152 lSiO153 lSiO154 lSiO155 lSiO156 lSiO157 lSiO158 lSiO159 lSiO160 lFeSiO155 lFeSiO156 lFeSiO157 lFeSiO158 lFeSiO159"
+dftStr = "lFe338 lFe339 lFe340 lFe341 lFe342 FeMgO438 FeMgO439 FeMgO440 FeMgO441 FeMgO442"
 dftRuns = dftStr.split()
 dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -294,20 +294,33 @@ cmc.save(tabDir+'/cmc_'+timestr+'.df')
 dft.save(tabDir+'/dft_'+timestr+'.df')
 dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
 
-tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
-cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
-dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
-dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
+#tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
+#cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
+#dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
+#dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
 
-tdi_comb.save('tdi.df')
-cmc_comb.save('cmc.df')
-dft_comb.save('dft.df')
-dft_eos_comb.save('dft_eos.df')
+#tdi_comb.save('tdi.df')
+#cmc_comb.save('cmc.df')
+#dft_comb.save('dft.df')
+#dft_eos_comb.save('dft_eos.df')
 
 # load dataFrames
-tdi = pd.load('tdi.df')
-cmc = pd.load('cmc.df')
-dft = pd.load('dft.df')
-dft_eos = pd.load('dft_eos.df')
+
+# new data only
+#tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
+#cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
+#dft = pd.load(tabDir+'/dft_'+timestr+'.df')
+#dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
+
+#combined
+#tdi = pd.load('tdi.df')
+#cmc = pd.load('cmc.df')
+#dft = pd.load('dft.df')
+#dft_eos = pd.load('dft_eos.df')
+
+# print data location
+print 'Data directory: ' + saveDir
+print 'Table directory: '+ tabDir
+print 'Identifying time string: ' + timestr
 
 
