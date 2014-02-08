@@ -10,8 +10,6 @@ import subprocess
 import pandas as pd
 import numpy as np
 import socket
-import os
-
 from subprocess import Popen, PIPE
 import time
 
@@ -28,7 +26,7 @@ cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
 lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
 
 # Run directories
-cmcStr = "lFe343 FeMgO443"
+cmcStr = ""
 
 cmcEinsteinStr = ""
 cmcEinsteinRuns = cmcEinsteinStr.split()
@@ -36,7 +34,7 @@ cmcPPRuns = cmcStr.split()
 cmcRuns = cmcEinsteinRuns + cmcPPRuns
 cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-dftStr = "lFe338 lFe339 lFe340 lFe341 lFe342 FeMgO438 FeMgO439 FeMgO440 FeMgO441 FeMgO442"
+dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO257 lMgO259 lMgO260 lMgO261 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
 dftRuns = dftStr.split()
 dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -58,12 +56,13 @@ for line in stdout.split('\n'):
         temp = float(sline[5].replace('T=','').replace(',','') )
         volume = float(sline[6].replace('Vi=','') )
 #        print [id,system,temp,volume]
-        cmcInfo.append([id,system,temp,volume,host])
+        cmcInfo.append([id,system,temp,volume,host,date])
+        date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
     except:
         pass
 
     
-cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname'])
+cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname','date'])
 cmc['dir'] = cmcDirs
 cmc.set_index('id',inplace=True,drop=False)
 
@@ -81,14 +80,17 @@ for line in stdout.split('\n'):
         system = sline[1].replace('[','')
         temp = float(sline[4].replace('T=','').replace(',','') )
         volume = float(sline[5].replace('V=','').replace(',','') ) 
+        tstep = float(sline[7].replace('tstep=','').replace(',','') )
+        cutoff = float(sline[8].replace('cutoff=','').replace(',','') )
         lam = float(sline[12].replace('lamd=','') )
         k_spring = sline[11].replace('K=','').replace(',$','')
-        dftInfo.append([id,system,temp,volume,k_spring,lam,host])
+        date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
+        dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,date])
     except:
         pass
 
 
-dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname'])
+dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname','tstep','cutoff','date'])
 dft['dir'] = dftDirs
 
 # Generate cmc results, saving to a file
