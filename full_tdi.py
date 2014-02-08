@@ -12,6 +12,7 @@ import numpy as np
 import socket
 from subprocess import Popen, PIPE
 import time
+import glob
 
 host = socket.gethostname()
 
@@ -34,7 +35,7 @@ cmcPPRuns = cmcStr.split()
 cmcRuns = cmcEinsteinRuns + cmcPPRuns
 cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO257 lMgO259 lMgO260 lMgO261 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
+dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
 dftRuns = dftStr.split()
 dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -57,17 +58,40 @@ for line in stdout.split('\n'):
         volume = float(sline[6].replace('Vi=','') )
 #        print [id,system,temp,volume]
         cmcInfo.append([id,system,temp,volume,host,date])
-        date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
+        path = os.path.join(runDir,id)
+        try:
+            date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
+        except:
+            date = None
     except:
         pass
 
     
-cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname','date'])
+cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname','path','date'])
 cmc['dir'] = cmcDirs
 cmc.set_index('id',inplace=True,drop=False)
 
 
 # Get information from about dft runs
+def countInFile(query,paths):
+
+    pathl = []
+    if isinstance(paths,str):
+        pathl.append(paths)
+    elif isinstance(paths,list):
+        pathl = paths
+    else:
+        raise Exception('Not a string or list of strings')
+
+    count = 0
+    for path in pathl:
+        with open(path) as f:
+            for line in f:
+                if query in line:
+                    count +=1
+    return count
+
+
 (stdout, stderr) = Popen([runinfo]+dftRuns, stdout=PIPE).communicate()
 print stdout
 
@@ -77,6 +101,7 @@ for line in stdout.split('\n'):
     try:
         assert sline[3] == 'cci' or sline[3] == 'einstein' # check for correct format
         id = sline[0]
+        print id
         system = sline[1].replace('[','')
         temp = float(sline[4].replace('T=','').replace(',','') )
         volume = float(sline[5].replace('V=','').replace(',','') ) 
@@ -84,13 +109,21 @@ for line in stdout.split('\n'):
         cutoff = float(sline[8].replace('cutoff=','').replace(',','') )
         lam = float(sline[12].replace('lamd=','') )
         k_spring = sline[11].replace('K=','').replace(',$','')
-        date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
-        dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,date])
+        path = os.path.join(runDir,id)
+        outcars = glob.glob(path + '/out*/OUTCAR') + [path+'/OUTCAR'] 
+        try:
+            nstep = countInFile('LOOP+',outcars)
+            date =  os.path.getmtime(outcars[-1])
+            runtime = nstep*tstep
+        except:
+            date = None
+
+        dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,nstep,runtime,date,path])
     except:
         pass
 
 
-dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname','tstep','cutoff','date'])
+dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname','tstep','cutoff','nstep','runtime','date','path'])
 dft['dir'] = dftDirs
 
 # Generate cmc results, saving to a file
