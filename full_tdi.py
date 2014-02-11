@@ -4,6 +4,7 @@ using Pandas dataframes'''
 
 #cd ~/code/python/vasp_automation
 
+# import modules
 from parse_vasp import *
 import os
 import subprocess
@@ -65,7 +66,8 @@ def makeCMC(cmcPPruns=[],cmcEinsteinRuns=[]):
     '''Generate a pandas dataframe storing information about cmc runs, given lists of
     ids for liquid runs using pairpotentials or solid runs using Einstein potentials.'''
 
-    global host, addDate, kpoints, functional, runDir, runinfo, cmc_result, cmc_einstein
+    global host, addDate, kpoints, functional, runDir, runinfo, cmc_result, \
+            cmc_einstein, timestr
     
     # combine list of runs
     cmcRuns = cmcEinsteinRuns + cmcPPRuns
@@ -91,16 +93,16 @@ def makeCMC(cmcPPruns=[],cmcEinsteinRuns=[]):
                 date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
             except:
                 date = None
-            cmcInfo.append([id,system,temp,volume,host,path,date,addDate])
+            cmcInfo.append([id,system,temp,volume,host,path,date,addDate,kpoints, \
+                functional])
         except:
             pass
 
-    cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname','path','date','add_date'])
+    cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname', \
+            'path','date','add_date','kpoints','functional'])
     cmc['dir'] = cmcDirs
-cmc.set_index('id',inplace=True,drop=False)
+    cmc.set_index('id',inplace=True,drop=False)
 
-    # Generate cmc results, saving to a file
-    timestr = time.strftime("%Y%m%d-%H%M%S")
 
     cmc_result_file = "/u/smwahl/dat/cmc_" + timestr + ".dat"
     print cmc_result_file
@@ -132,7 +134,8 @@ cmc.set_index('id',inplace=True,drop=False)
             pass
 
     # add the cmc results to the dataframe
-    cmc_tmp = pd.DataFrame(cmcResultInfo,columns=['id','result','F_an','F_cmc','F_class','result_file'])
+    cmc_tmp = pd.DataFrame(cmcResultInfo,columns=['id','result','F_an','F_cmc',\
+            'F_class','result_file'])
     cmc_tmp.set_index('id',inplace=True)
 
     cmc = cmc.join(cmc_tmp)
@@ -143,7 +146,8 @@ def makeDFT(dftRuns):
     '''Generate a pandas dataframe storing data about a collection of dft runs, given 
         a list of ids for those runs.'''
 
-    global host, addDate, kpoints, functional, runDir, saveDir, runinfo, lambda_cci
+    global host, addDate, kpoints, functional, runDir, saveDir, runinfo, \
+            lambda_cci, timestr
 
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
     # Get information from about dft runs
@@ -174,11 +178,14 @@ def makeDFT(dftRuns):
             except:
                 date = None
 
-            dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,nstep,runtime,date,path])
+            dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,\
+                    nstep,runtime,date,path,addDate,kpoints,functional])
         except:
             pass
 
-    dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring','lambda','hostname','tstep','cutoff','nstep','runtime','date','path'])
+    dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring',\
+            'lambda','hostname','tstep','cutoff','nstep','runtime','date','path',\
+            'add_date','kpoints','functional'])
     dft['dir'] = dftDirs
     return dft
 
@@ -187,6 +194,9 @@ def makeTDI(dft):
     '''Generate a dataframe for each thermodynamic integration based on finding the dft
      tdi runs with matching volume. Returns two dataframes, one for the tdi and a 
      one with the corresponding eos results for the lambda = 1 case'''
+
+    global host, addDate, kpoints, functional, runDir, saveDir, runinfo, lambda_cci
+
     # Find each separate integration
 
     group_vol = dft.groupby('volume')
@@ -228,14 +238,14 @@ def makeTDI(dft):
             u = (float(sline[20]), float(sline[21]) )
             h = (float(sline[24]), float(sline[25]) )
             ptar = target_pressures[ np.abs(np.array(target_pressures) - p[0]).argmin()]
-            eosInfo.append([id,system,ptar,temp,time,vol,p,pv,u,h])
+            eosInfo.append([id,system,ptar,temp,time,vol,p,pv,u,h,kpoints,functional])
             print id,system,ptar,temp,time,vol,p,pv,u,h
 
         except:
             pass
 
     dft_eos = pd.DataFrame(eosInfo,columns=['id','system','P_target','T', 'run_time', \
-            'V','P', 'PV', 'U','H'])
+            'V','P', 'PV', 'U','H','kpoints','functional'])
 
     # Index both tables by the lambda=1 run id
     tdi.set_index('dft_id',inplace=True,drop=False)
@@ -249,13 +259,11 @@ def makeTDI(dft):
     return tdi, dft_eos
 
 def linkCMC(tdi,cmc):
-
     '''Link tdi entries to their respectice cmc runs. This is done by matching 
     temperature and volume, however the output of volume from
     various scripts have different number of significant figures'''
 
-
-    global host, addDate, kpoints, functional, runDir, saveDir, eos
+    global host, addDate, kpoints, functional, runDir, saveDir, eos, timestr
      
     tmp_tdi = tdi.set_index(tdi['volume'].apply(np.round,args=[5]))
     tmp_cmc = cmc.set_index(cmc['volume'].apply(np.round,args=[5]))
@@ -292,7 +300,8 @@ def linkCMC(tdi,cmc):
 
         print ' '.join([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)]+runs)
 
-        (stdout, stderr) = Popen([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)]+runs, stdout=PIPE).communicate()
+        (stdout, stderr) = Popen([lambda_cci,tmp_cmc_file,str(nlam),str(Pkbar)] \
+                +runs,stdout=PIPE).communicate()
         print stdout
 
         # store results
@@ -316,7 +325,7 @@ def linkCMC(tdi,cmc):
                     break
 
         result_list.append([idx, lams, dVcell, dV_var, dV_var_eV, F_dft_cl, \
-            F_dft,P_targetV,U_dft,G_dft,tdi_result_file ])
+            F_dft,P_targetV,U_dft,G_dft,tdi_result_file,kpoints,functional ])
         print result_list[-1]
 
         f.write(stdout)
@@ -326,104 +335,120 @@ def linkCMC(tdi,cmc):
 
     print result_list
     tdi_tmp = pd.DataFrame(result_list,columns=['id', 'lambdas', 'dVcell', 'dV_var', \
-            'dV_var_eV', 'F_cl_dft', 'F_dft','P_targetV','U_dft','G_dft','result_file'] )
+            'dV_var_eV', 'F_cl_dft', 'F_dft','P_targetV','U_dft','G_dft', \
+            'result_file','kpoints','functional'] )
     tdi_tmp.set_index('id',inplace=True)
 
     # may wish to check before joining
     return tdi.join(tdi_tmp)
 
 
-# General informations ( these are treated as global variables in functions
-# adding data to the dataframes
-# Need to add this data separately
-host = socket.gethostname()
-addDate = time.time()
-kpoints = 'balderesci' 
-functional = 'PBE' # at the moment this is to distingush regular GGA 'PBE' and GGA+U 'PBE+U'
+if __name__ == "__main__":
 
-# directories for reading raw data and saving consolidated data
-runDir="/u/smwahl/scr/workspace"
-saveDir="/u/smwahl/dat/"
-tabDir = os.path.join(saveDir,'tables')
-
-# analysis scripts (passed as globals)
-runinfo="/u/smwahl/scripts/vasp_automation/runinfo"
-eos="/u/smwahl/scripts/eos1"
-cmc_result="/u/smwahl/code/python/vasp_automation/cmc_result"
-cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
-lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
-
-# global host, addDate, kpoints, functional, runDir, saveDir, runinfo, eos, cmc_result, cmc_einstein, lambda_cci
-
-# Run directories (note separate arrays for liquid and solid cmc runs)
-cmcStr = ""
-cmcPPRuns = cmcStr.split()
-cmcEinsteinStr = ""
-cmcEinsteinRuns = cmcEinsteinStr.split()
-#cmcRuns = cmcEinsteinRuns + cmcPPRuns
-#cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
-
-dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
-dftRuns = dftStr.split()
-dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
-
-target_pressures = [ 50., 100., 400. ]
+    # General informations ( these are treated as global variables in functions
+    # adding data to the dataframes
+    # Need to add this data separately
+    host = socket.gethostname()
+    addDate = time.time()
+    kpoints = 'balderesci' 
+    functional = 'PBE' # at the moment this is to distingush regular GGA 'PBE' and GGA+U 'PBE+U'
 
 
-# load old dataFrames
-tdi_old = pd.load('tdi.df')
-cmc_old = pd.load('cmc.df')
-dft_old = pd.load('dft.df')
-dft_eos_old = pd.load('dft_eos.df')
+    # Generate cmc results, saving to a file
+    timestr = time.strftime("%Y%m%d-%H%M%S")
 
-# generate the dataframes
-dft = makeDFT(dftRuns)
-cmc = makeCMC(cmcPPRuns,cmcEinsteinRuns)
-tdi, eos = makeTDI(dft)
+    # directories for reading raw data and saving consolidated data
+    runDir="/u/smwahl/scr/workspace"
+    saveDir="/u/smwahl/dat/"
+    tabDir = os.path.join(saveDir,'tables')
 
-# if necessary link dft runs to old cmc table
+    # analysis scripts (passed as globals)
+    runinfo="/u/smwahl/scripts/vasp_automation/runinfo"
+    eos="/u/smwahl/scripts/eos1"
+    cmc_result="/u/smwahl/code/python/vasp_automation/cmc_result"
+    cmc_einstein="/u/smwahl/code/python/vasp_automation/cmc_einstein"
+    lambda_cci="/u/smwahl/scripts/vasp_automation/lambda_cci"
 
+    # global host, addDate, kpoints, functional, runDir, saveDir, runinfo, eos, cmc_result, cmc_einstein, lambda_cci
 
+    # Run directories (note separate arrays for liquid and solid cmc runs)
+    cmcStr = ""
+    cmcPPRuns = cmcStr.split()
+    cmcEinsteinStr = ""
+    cmcEinsteinRuns = cmcEinsteinStr.split()
+    #cmcRuns = cmcEinsteinRuns + cmcPPRuns
+    #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-# combine new cmc and dft tables with existing ones
-cmc_comb = cmc_old.append(cmc)
-dft_comb = dft_old.append(dft)
-tdi_comb = tdi_old.append(tdi)
-dft_eos_comb = dft_eos_old.append(dft_eos)
+    dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
+    dftRuns = dftStr.split()
+    dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
-# save DataFrames
-tdi.save(tabDir+'/tdi_'+timestr+'.df')
-cmc.save(tabDir+'/cmc_'+timestr+'.df')
-dft.save(tabDir+'/dft_'+timestr+'.df')
-dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
+    #target_pressures = [ 50., 100., 400. ]
 
-#tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
-#cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
-#dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
-#dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
+    # load old dataFrames
+    tab_num = '20140110-142950'
+    tdi_old = pd.load(tabDir + '/' + 'tdi_all_' + tab_num + '.df')
+    cmc_old = pd.load(tabDir + '/' + 'cmc_all_' + tab_num + '.df')
+    dft_old = pd.load(tabDir + '/' + 'dft_all_' + tab_num + '.df')
+    dft_eos_old = pd.load(tabDir + '/' + 'dft_eos_all_' + tab_num + '.df')
 
-#tdi_comb.save('tdi.df')
-#cmc_comb.save('cmc.df')
-#dft_comb.save('dft.df')
-#dft_eos_comb.save('dft_eos.df')
+    # generate the dataframes
+    dft = makeDFT(dftRuns)
+    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
+        cmc = makeCMC(cmcPPRuns,cmcEinsteinRuns)
+    tdi, dft_eos = makeTDI(dft)
 
-# load dataFrames
+    # if necessary link dft runs to old cmc table
+    # (e.g.) if only updating values for existing DFT runs
+    if len(cmcPPRuns + cmcEinsteinRuns) == 0:
+        cmc = cmc_old
 
-# new data only
-#tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
-#cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
-#dft = pd.load(tabDir+'/dft_'+timestr+'.df')
-#dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
+    tdi = linkCMC(tdi,cmc)
 
-#combined
-#tdi = pd.load('tdi.df')
-#cmc = pd.load('cmc.df')
-#dft = pd.load('dft.df')
-#dft_eos = pd.load('dft_eos.df')
+    #link corresponding cmc runs to tdi (this could probably instead be handled with a merge)
 
-# print data location
-print 'Data directory: ' + saveDir
-print 'Table directory: '+ tabDir
-print 'Identifying time string: ' + timestr
+    # combine new cmc and dft tables with existing ones
+    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
+        cmc_comb = updateData(cmc_old,cmc)
+    else:
+        cmc_comb = cmc
+    dft_comb = updateData(dft_old,cmc)
+    tdi_comb = updateData(tdi_old,cmc)
+    dft_eos_comb = updateData(dft_eos_old,cmc)
+
+    # save DataFrames
+    tdi.save(tabDir+'/tdi_'+timestr+'.df')
+    cmc.save(tabDir+'/cmc_'+timestr+'.df')
+    dft.save(tabDir+'/dft_'+timestr+'.df')
+    dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
+
+    tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
+    cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
+    dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
+    dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
+
+    #tdi_comb.save('tdi.df')
+    #cmc_comb.save('cmc.df')
+    #dft_comb.save('dft.df')
+    #dft_eos_comb.save('dft_eos.df')
+
+    # load dataFrames
+
+    # new data only
+    #tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
+    #cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
+    #dft = pd.load(tabDir+'/dft_'+timestr+'.df')
+    #dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
+
+    #combined
+    #tdi = pd.load('tdi.df')
+    #cmc = pd.load('cmc.df')
+    #dft = pd.load('dft.df')
+    #dft_eos = pd.load('dft_eos.df')
+
+    # print data location
+    print 'Data directory: ' + saveDir
+    print 'Table directory: '+ tabDir
+    print 'Identifying time string: ' + timestr
 
 
