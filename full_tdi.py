@@ -351,7 +351,8 @@ if __name__ == "__main__":
     host = socket.gethostname()
     addDate = time.time()
     kpoints = 'balderesci' 
-    functional = 'PBE' # at the moment this is to distingush regular GGA 'PBE' and GGA+U 'PBE+U'
+    functional = 'PBE' # at the moment this is to distingush regular GGA 'PBE' and GGA+U 'PBE+U')
+
 
 
     # Generate cmc results, saving to a file
@@ -379,7 +380,8 @@ if __name__ == "__main__":
     #cmcRuns = cmcEinsteinRuns + cmcPPRuns
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-    dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
+#    dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
+    dftStr="lMgO257 lMgO258 lMgO259 lMgO260 lMgO261"
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -387,6 +389,7 @@ if __name__ == "__main__":
 
     # load old dataFrames
     tab_num = '20140110-142950'
+#    tab_num = '20140210-185727'
     tdi_old = pd.load(tabDir + '/' + 'tdi_all_' + tab_num + '.df')
     cmc_old = pd.load(tabDir + '/' + 'cmc_all_' + tab_num + '.df')
     dft_old = pd.load(tabDir + '/' + 'dft_all_' + tab_num + '.df')
@@ -412,9 +415,9 @@ if __name__ == "__main__":
         cmc_comb = updateData(cmc_old,cmc)
     else:
         cmc_comb = cmc
-    dft_comb = updateData(dft_old,cmc)
-    tdi_comb = updateData(tdi_old,cmc)
-    dft_eos_comb = updateData(dft_eos_old,cmc)
+    dft_comb = updateData(dft_old,dft,idxcol='id')
+    tdi_comb = updateData(tdi_old,tdi)
+    dft_eos_comb = updateData(dft_eos_old,dft_eos)
 
     # save DataFrames
     tdi.save(tabDir+'/tdi_'+timestr+'.df')
