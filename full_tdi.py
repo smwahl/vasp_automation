@@ -221,7 +221,7 @@ def makeTDI(dft):
 
     # Find thermodynamic quantities of the DFT system and infer target pressure
     # given a list of possibilities
-    target_pressures = [ 50., 100., 400.]
+    target_pressures = [ 0.,50., 100., 400.]
     (stdout, stderr) = Popen([eos]+eos_runs, stdout=PIPE).communicate()
     print stdout
 
@@ -376,16 +376,17 @@ if __name__ == "__main__":
     # global host, addDate, kpoints, functional, runDir, saveDir, runinfo, eos, cmc_result, cmc_einstein, lambda_cci
 
     # Run directories (note separate arrays for liquid and solid cmc runs)
-#    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
-    cmcStr="lFe384 lMgO315 lFeMgO544 lFe385 lMgO316 lFeMgO545 lFe386 lMgO317 lFeMgO546"
+    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
+#    cmcStr="lFe384 lMgO315 lFeMgO544 lFe385 lMgO316 lFeMgO545 lFe386 lMgO317 lFeMgO546"
+
     cmcPPRuns = cmcStr.split()
     cmcEinsteinStr = ""
     cmcEinsteinRuns = cmcEinsteinStr.split()
     #cmcRuns = cmcEinsteinRuns + cmcPPRuns
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-#    dftStr = "lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508"
-    dftStr = "lFe363 lFe364 lFe365 lFe366 lFe367 lMgO294 lMgO295 lMgO296 lMgO297 lMgO298 lFeMgO523 lFeMgO524 lFeMgO525 lFeMgO526 lFeMgO527 lFe368 lFe369 lFe370 lFe371 lFe372 lMgO299 lMgO300 lMgO301 lMgO302 lMgO303 lFeMgO528 lFeMgO529 lFeMgO530 lFeMgO531 lFeMgO532 lFe373 lFe374 lFe375 lFe376 lFe377 lMgO304 lMgO305 lMgO306 lMgO307 lMgO308 lFeMgO533 lFeMgO534 lFeMgO535 lFeMgO536 lFeMgO537"
+#    dftStr = "lFe363 lFe364 lFe365 lFe366 lFe367 lMgO294 lMgO295 lMgO296 lMgO297 lMgO298 lFeMgO523 lFeMgO524 lFeMgO525 lFeMgO526 lFeMgO527 lFe368 lFe369 lFe370 lFe371 lFe372 lMgO299 lMgO300 lMgO301 lMgO302 lMgO303 lFeMgO528 lFeMgO529 lFeMgO530 lFeMgO531 lFeMgO532 lFe373 lFe374 lFe375 lFe376 lFe377 lMgO304 lMgO305 lMgO306 lMgO307 lMgO308 lFeMgO533 lFeMgO534 lFeMgO535 lFeMgO536 lFeMgO537"
+    dftStr = 'lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508'
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -395,8 +396,9 @@ if __name__ == "__main__":
 #    tab_num = '20140110-142950'
 #    tab_num = '20140219-164724'
 #    tab_num = '20140219-182020'
-#    tab_num = '20140219-182020'
-    tab_num = '20140327-144321'
+#    tab_num = '20140327-153139'
+    tab_num = '20140327-154609'
+
     tdi_old = pd.load(tabDir + '/' + 'tdi_all_' + tab_num + '.df')
     cmc_old = pd.load(tabDir + '/' + 'cmc_all_' + tab_num + '.df')
     dft_old = pd.load(tabDir + '/' + 'dft_all_' + tab_num + '.df')
