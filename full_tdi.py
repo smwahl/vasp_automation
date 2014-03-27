@@ -80,6 +80,7 @@ def makeCMC(cmcPPruns=[],cmcEinsteinRuns=[]):
     cmcInfo = []
     for line in stdout.split('\n'):
         sline = line.split()
+        print sline
         try:
             assert sline[3] == 'cmc'
     #        print sline
@@ -87,7 +88,7 @@ def makeCMC(cmcPPruns=[],cmcEinsteinRuns=[]):
             system = sline[1].replace('[','')
             temp = float(sline[5].replace('T=','').replace(',','') )
             volume = float(sline[6].replace('Vi=','') )
-    #        print [id,system,temp,volume]
+            print [id,system,temp,volume]
             path = os.path.join(runDir,id)
             try:
                 date =  os.path.getmtime(os.path.join(runDir,id,'run.scr'))
@@ -97,6 +98,8 @@ def makeCMC(cmcPPruns=[],cmcEinsteinRuns=[]):
                 functional])
         except:
             pass
+
+    print cmcInfo
 
     cmc = pd.DataFrame(cmcInfo,columns=['id','system','temp','volume','hostname', \
             'path','date','add_date','kpoints','functional'])
@@ -373,15 +376,16 @@ if __name__ == "__main__":
     # global host, addDate, kpoints, functional, runDir, saveDir, runinfo, eos, cmc_result, cmc_einstein, lambda_cci
 
     # Run directories (note separate arrays for liquid and solid cmc runs)
-    cmcStr = "lFeMgO469 lFeMgO470 lFeMgO471 lFeMgO472"
+#    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
+    cmcStr="lFe384 lMgO315 lFeMgO544 lFe385 lMgO316 lFeMgO545 lFe386 lMgO317 lFeMgO546"
     cmcPPRuns = cmcStr.split()
     cmcEinsteinStr = ""
     cmcEinsteinRuns = cmcEinsteinStr.split()
     #cmcRuns = cmcEinsteinRuns + cmcPPRuns
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-#    dftStr = "lFe289 lFe290 lFe291 lFe292 lFe293 lMgO257 lMgO258 lMgO259 lMgO260 lMgO261 lFe279 lFe280 lFe281 lFe282 lFe283 lFe269 lFe270 lFe271 lFe272 lFe273 lMgO227 lMgO228 lMgO229 lMgO230 lMgO231 lFe324 lFe325 lFe326 lFe327 lFe328 MgO166 MgO167 MgO168 MgO169 MgO170 lFeMgO368 lFeMgO369 lFeMgO370 lFeMgO371 lFeMgO372 lFeMgO388 lFeMgO389 lFeMgO390 lFeMgO391 lFeMgO392 lFeMgO424 lFeMgO425 lFeMgO426 lFeMgO427 lFeMgO428 lFeMgO363 lFeMgO364 lFeMgO365 lFeMgO366 lFeMgO367"
-    dftStr = "lFeMgO449 lFeMgO450 lFeMgO451 lFeMgO452 lFeMgO453 lFeMgO454 lFeMgO455 lFeMgO456 lFeMgO457 lFeMgO458 lFeMgO459 lFeMgO460 lFeMgO461 lFeMgO462 lFeMgO463 lFeMgO464 lFeMgO465 lFeMgO466 lFeMgO467 lFeMgO468"
+#    dftStr = "lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508"
+    dftStr = "lFe363 lFe364 lFe365 lFe366 lFe367 lMgO294 lMgO295 lMgO296 lMgO297 lMgO298 lFeMgO523 lFeMgO524 lFeMgO525 lFeMgO526 lFeMgO527 lFe368 lFe369 lFe370 lFe371 lFe372 lMgO299 lMgO300 lMgO301 lMgO302 lMgO303 lFeMgO528 lFeMgO529 lFeMgO530 lFeMgO531 lFeMgO532 lFe373 lFe374 lFe375 lFe376 lFe377 lMgO304 lMgO305 lMgO306 lMgO307 lMgO308 lFeMgO533 lFeMgO534 lFeMgO535 lFeMgO536 lFeMgO537"
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -390,7 +394,9 @@ if __name__ == "__main__":
     # load old dataFrames
 #    tab_num = '20140110-142950'
 #    tab_num = '20140219-164724'
-    tab_num = '20140219-182020'
+#    tab_num = '20140219-182020'
+#    tab_num = '20140219-182020'
+    tab_num = '20140327-144321'
     tdi_old = pd.load(tabDir + '/' + 'tdi_all_' + tab_num + '.df')
     cmc_old = pd.load(tabDir + '/' + 'cmc_all_' + tab_num + '.df')
     dft_old = pd.load(tabDir + '/' + 'dft_all_' + tab_num + '.df')
