@@ -196,7 +196,11 @@ def makeDFT(dftRuns):
 def makeTDI(dft):
     '''Generate a dataframe for each thermodynamic integration based on finding the dft
      tdi runs with matching volume. Returns two dataframes, one for the tdi and a 
-     one with the corresponding eos results for the lambda = 1 case'''
+     one with the corresponding eos results for the lambda = 1 case
+     
+     Note: This involves a groupby volume, to determine runs to run a tdi integration
+     over, which is potentially a problem if you had two different kinds of runs with
+     the exact same volume.'''
 
     global host, addDate, kpoints, functional, runDir, saveDir, runinfo, lambda_cci
 
@@ -376,8 +380,8 @@ if __name__ == "__main__":
     # global host, addDate, kpoints, functional, runDir, saveDir, runinfo, eos, cmc_result, cmc_einstein, lambda_cci
 
     # Run directories (note separate arrays for liquid and solid cmc runs)
-    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
-#    cmcStr="lFe384 lMgO315 lFeMgO544 lFe385 lMgO316 lFeMgO545 lFe386 lMgO317 lFeMgO546"
+#    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
+    cmcStr = "lFe399 lFe400 lFeMgO559 lFeMgO560 lMgO330 lMgO331"
 
     cmcPPRuns = cmcStr.split()
     cmcEinsteinStr = ""
@@ -385,8 +389,9 @@ if __name__ == "__main__":
     #cmcRuns = cmcEinsteinRuns + cmcPPRuns
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
-#    dftStr = "lFe363 lFe364 lFe365 lFe366 lFe367 lMgO294 lMgO295 lMgO296 lMgO297 lMgO298 lFeMgO523 lFeMgO524 lFeMgO525 lFeMgO526 lFeMgO527 lFe368 lFe369 lFe370 lFe371 lFe372 lMgO299 lMgO300 lMgO301 lMgO302 lMgO303 lFeMgO528 lFeMgO529 lFeMgO530 lFeMgO531 lFeMgO532 lFe373 lFe374 lFe375 lFe376 lFe377 lMgO304 lMgO305 lMgO306 lMgO307 lMgO308 lFeMgO533 lFeMgO534 lFeMgO535 lFeMgO536 lFeMgO537"
-    dftStr = 'lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508'
+#    dftStr = 'lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508'
+    dftStr = 'lFe389 lFe390 lFe391 lFe392 lFe393 lFe394 lFe395 lFe396 lFe397 lFe398 lFeMgO549 lFeMgO550 lFeMgO551 lFeMgO552 lFeMgO553 lFeMgO554 lFeMgO555 lFeMgO556 lFeMgO557 lFeMgO558 lMgO320 lMgO321 lMgO322 lMgO323 lMgO324 lMgO325 lMgO326 lMgO327 lMgO328 lMgO329'
+
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
