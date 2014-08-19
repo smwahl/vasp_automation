@@ -183,9 +183,10 @@ def makeDFT(dftRuns):
 
             dftInfo.append([id,system,temp,volume,k_spring,lam,host,tstep,cutoff,\
                     nstep,runtime,date,path,addDate,kpoints,functional])
+            print dftInfo
         except:
             pass
-
+    print dftInfo
     dft = pd.DataFrame(dftInfo,columns=['id','system','temp','volume','k_spring',\
             'lambda','hostname','tstep','cutoff','nstep','runtime','date','path',\
             'add_date','kpoints','functional'])
@@ -381,16 +382,16 @@ if __name__ == "__main__":
 
     # Run directories (note separate arrays for liquid and solid cmc runs)
 #    cmcStr = "lFeMgO509 lFeMgO510 lFeMgO511 lFeMgO512"
-    cmcStr = 'lFe425 lFeMgO585 lMgO346 lFe426 lFeMgO586 lFe427 lFeMgO587'
+    cmcStr = ''
 
     cmcPPRuns = cmcStr.split()
-    cmcEinsteinStr = "MgO199 MgO200"
+    cmcEinsteinStr = ""
     cmcEinsteinRuns = cmcEinsteinStr.split()
     #cmcRuns = cmcEinsteinRuns + cmcPPRuns
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
 #    dftStr = 'lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508'
-    dftStr = 'lFe410 lFe411 lFe412 lFe413 lFe414 lFeMgO570 lFeMgO571 lFeMgO572 lFeMgO573 lFeMgO574 lMgO341 lMgO342 lMgO343 lMgO344 lMgO345 lFe415 lFe416 lFe417 lFe418 lFe419 lFeMgO575 lFeMgO576 lFeMgO577 lFeMgO578 lFeMgO579 lFe420 lFe421 lFe422 lFe423 lFe424 lFeMgO580 lFeMgO581 lFeMgO582 lFeMgO583 lFeMgO584 MgO189 MgO190 MgO191 MgO192 MgO193 MgO194 MgO195 MgO196 MgO197 MgO198'
+    dftStr = 'lFe406 lFe407 lFe408 lFe409 lFeMgO566 lFeMgO567 lFeMgO568 lFeMgO569 lMgO337 lMgO338 lMgO339 lMgO340'
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -402,7 +403,8 @@ if __name__ == "__main__":
 #    tab_num = '20140219-182020'
 #    tab_num = '20140327-153139'
 #    tab_num = '20140327-154609'
-    tab_num = '20140815-152629'
+#    tab_num = '20140815-152629'
+    tab_num = '20140819-113350'
 
     tdi_old = pd.load(tabDir + '/' + 'tdi_all_' + tab_num + '.df')
     cmc_old = pd.load(tabDir + '/' + 'cmc_all_' + tab_num + '.df')
@@ -415,54 +417,57 @@ if __name__ == "__main__":
         cmc = makeCMC(cmcPPRuns,cmcEinsteinRuns)
     tdi, dft_eos = makeTDI(dft)
 
+    # gather other runs
+
     # if necessary link dft runs to old cmc table
     # (e.g.) if only updating values for existing DFT runs
     if len(cmcPPRuns + cmcEinsteinRuns) == 0:
         cmc = cmc_old
 
-    tdi = linkCMC(tdi,cmc)
-
-    #link corresponding cmc runs to tdi (this could probably instead be handled with a merge)
-
-    # combine new cmc and dft tables with existing ones
-    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
-        cmc_comb = updateData(cmc_old,cmc)
-    else:
-        cmc_comb = cmc
-    dft_comb = updateData(dft_old,dft,idxcol='id')
-    tdi_comb = updateData(tdi_old,tdi)
-    dft_eos_comb = updateData(dft_eos_old,dft_eos)
-
-    # save DataFrames
-    tdi.save(tabDir+'/tdi_'+timestr+'.df')
-    cmc.save(tabDir+'/cmc_'+timestr+'.df')
-    dft.save(tabDir+'/dft_'+timestr+'.df')
-    dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
-
-    tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
-    cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
-    dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
-    dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
-
-    #tdi_comb.save('tdi.df')
-    #cmc_comb.save('cmc.df')
-    #dft_comb.save('dft.df')
-    #dft_eos_comb.save('dft_eos.df')
-
-    # load dataFrames
-
-    # new data only
-    #tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
-    #cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
-    #dft = pd.load(tabDir+'/dft_'+timestr+'.df')
-    #dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
-
-    #combined
-    #tdi = pd.load('tdi.df')
-    #cmc = pd.load('cmc.df')
-    #dft = pd.load('dft.df')
-    #dft_eos = pd.load('dft_eos.df')
-
+#    # stopping before linking
+#    tdi = linkCMC(tdi,cmc)
+#
+#    #link corresponding cmc runs to tdi (this could probably instead be handled with a merge)
+#
+#    # combine new cmc and dft tables with existing ones
+#    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
+#        cmc_comb = updateData(cmc_old,cmc)
+#    else:
+#        cmc_comb = cmc
+#    dft_comb = updateData(dft_old,dft,idxcol='id')
+#    tdi_comb = updateData(tdi_old,tdi)
+#    dft_eos_comb = updateData(dft_eos_old,dft_eos)
+#
+#    # save DataFrames
+#    tdi.save(tabDir+'/tdi_'+timestr+'.df')
+#    cmc.save(tabDir+'/cmc_'+timestr+'.df')
+#    dft.save(tabDir+'/dft_'+timestr+'.df')
+#    dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
+#
+#    tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
+#    cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
+#    dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
+#    dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
+#
+#    #tdi_comb.save('tdi.df')
+#    #cmc_comb.save('cmc.df')
+#    #dft_comb.save('dft.df')
+#    #dft_eos_comb.save('dft_eos.df')
+#
+#    # load dataFrames
+#
+#    # new data only
+#    #tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
+#    #cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
+#    #dft = pd.load(tabDir+'/dft_'+timestr+'.df')
+#    #dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
+#
+#    #combined
+#    #tdi = pd.load('tdi.df')
+#    #cmc = pd.load('cmc.df')
+#    #dft = pd.load('dft.df')
+#    #dft_eos = pd.load('dft_eos.df')
+#
     # print data location
     print 'Data directory: ' + saveDir
     print 'Table directory: '+ tabDir
