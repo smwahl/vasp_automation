@@ -194,14 +194,17 @@ def makeDFT(dftRuns):
     return dft
 
 
-def makeTDI(dft):
+def makeTDI(dft,lambdas=None):
     '''Generate a dataframe for each thermodynamic integration based on finding the dft
      tdi runs with matching volume. Returns two dataframes, one for the tdi and a 
      one with the corresponding eos results for the lambda = 1 case
      
      Note: This involves a groupby volume, to determine runs to run a tdi integration
      over, which is potentially a problem if you had two different kinds of runs with
-     the exact same volume.'''
+     the exact same volume.
+     
+     Optiional: Can include a list of lambda values to allow for doing the tdi calculation
+     with a subset of lambda values.'''
 
     global host, addDate, kpoints, functional, runDir, saveDir, runinfo, lambda_cci
 
@@ -212,7 +215,10 @@ def makeTDI(dft):
     tdi_list = []
     for group in group_vol:
         df = group[1]
-        runs = df.id.tolist()
+        if lambdas is None:
+            runs = df.id.tolist()
+        else:
+            runs = df[df['lambda'].isin(lambdas)].id.tolist()
         l1 = df[ df['lambda'] == 1.0 ] 
         a =l1.loc[:,['id','system','temp','volume']]
         a['dft_tdi_runs'] = [ runs]
@@ -256,10 +262,11 @@ def makeTDI(dft):
             'V','P', 'PV', 'U','H','kpoints','functional'])
 
     # Index both tables by the lambda=1 run id
+    # removing this index for the tdi table to allow for test of different variables
     tdi.set_index('dft_id',inplace=True,drop=False)
     dft_eos.set_index('id',inplace=True,drop=False)
 
-    tdi['P_target'] = dft_eos['P_target']
+    tdi['P_target'] = dft_eos['P_target'].tolist()
 
     tdi = tdi.sort(['system','P_target','temp'])
     dft_eos = dft_eos.sort(['system','P_target','T'])
@@ -272,7 +279,8 @@ def linkCMC(tdi,cmc):
     various scripts have different number of significant figures'''
 
     global host, addDate, kpoints, functional, runDir, saveDir, eos, timestr
-     
+
+    print 'I changed again.'
     tmp_tdi = tdi.set_index(tdi['volume'].apply(np.round,args=[5]))
     tmp_cmc = cmc.set_index(cmc['volume'].apply(np.round,args=[5]))
     tmp_tdi['cmc_id'] = tmp_cmc['id']
@@ -294,7 +302,7 @@ def linkCMC(tdi,cmc):
     result_list = []
 
     for idx, row in tdi.iterrows():
-
+        print row['cmc_id']
         # store cmc results in a temporary file
         tmpf = open(tmp_cmc_file,'w')
         cmcrun = row['cmc_id']
@@ -341,12 +349,15 @@ def linkCMC(tdi,cmc):
     f.close()
 
 
-    print result_list
+    print len(result_list)
     tdi_tmp = pd.DataFrame(result_list,columns=['id', 'lambdas', 'dVcell', 'dV_var', \
             'dV_var_eV', 'F_cl_dft', 'F_dft','P_targetV','U_dft','G_dft', \
             'result_file','kpoints','functional'] )
-    tdi_tmp.set_index('id',inplace=True)
-
+#    tdi_tmp.set_index('id',inplace=True)
+    tdi.reset_index(inplace=True,drop=True)
+    tdi_tmp.reset_index(inplace=True,drop=True)
+#    print tdi_temp
+#    print tdi
     # may wish to check before joining
     return tdi.join(tdi_tmp)
 
@@ -391,7 +402,7 @@ if __name__ == "__main__":
     #cmcDirs = [ os.path.join(runDir,name) for name in cmcRuns ]
 
 #    dftStr = 'lFeMgO489 lFeMgO490 lFeMgO491 lFeMgO492 lFeMgO493 lFeMgO494 lFeMgO495 lFeMgO496 lFeMgO497 lFeMgO498 lFeMgO499 lFeMgO500 lFeMgO501 lFeMgO502 lFeMgO503 lFeMgO504 lFeMgO505 lFeMgO506 lFeMgO507 lFeMgO508'
-    dftStr = 'lFe406 lFe407 lFe408 lFe409 lFeMgO566 lFeMgO567 lFeMgO568 lFeMgO569 lMgO337 lMgO338 lMgO339 lMgO340'
+    dftStr = 'lFe428 lFe429 lFe430 lFe431 lFeMgO604 lFeMgO605 lFeMgO606 lFeMgO607 lMgO363 lMgO364 lMgO365 lMgO366'
     dftRuns = dftStr.split()
     dftDirs = [ os.path.join(runDir,name) for name in dftRuns ]
 
@@ -415,59 +426,69 @@ if __name__ == "__main__":
     dft = makeDFT(dftRuns)
     if len(cmcPPRuns + cmcEinsteinRuns) > 0:
         cmc = makeCMC(cmcPPRuns,cmcEinsteinRuns)
-    tdi, dft_eos = makeTDI(dft)
+
 
     # gather other runs
+    tmp = dft[['system','temp','volume']].drop_duplicates()
+    previousRuns = dft_old[ dft_old.volume.isin(tmp.volume) ] # kludgy, will break if different systems
+                                                              # have same volumes
+    dftWithPrevious = updateData(previousRuns,dft,idxcol='id')
+    dft = dftWithPrevious.sort(['system','temp','lambda'])
+
+    # Make table keeping track of the tdi calculation
+    tdi9, dft_eos = makeTDI(dft)
+    tdi5, dft_eos = makeTDI(dft,lambdas=[1.,.75,.5,.25,0.])
+    tdi3, dft_eos = makeTDI(dft,lambdas=[1.,.5,0.])
+    tdi0 = pd.concat([tdi3,tdi5,tdi9]) #This has repeated indices
+    
 
     # if necessary link dft runs to old cmc table
     # (e.g.) if only updating values for existing DFT runs
     if len(cmcPPRuns + cmcEinsteinRuns) == 0:
         cmc = cmc_old
-
-#    # stopping before linking
-#    tdi = linkCMC(tdi,cmc)
-#
 #    #link corresponding cmc runs to tdi (this could probably instead be handled with a merge)
-#
-#    # combine new cmc and dft tables with existing ones
-#    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
-#        cmc_comb = updateData(cmc_old,cmc)
-#    else:
-#        cmc_comb = cmc
-#    dft_comb = updateData(dft_old,dft,idxcol='id')
-#    tdi_comb = updateData(tdi_old,tdi)
-#    dft_eos_comb = updateData(dft_eos_old,dft_eos)
-#
-#    # save DataFrames
-#    tdi.save(tabDir+'/tdi_'+timestr+'.df')
-#    cmc.save(tabDir+'/cmc_'+timestr+'.df')
-#    dft.save(tabDir+'/dft_'+timestr+'.df')
-#    dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
-#
-#    tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
-#    cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
-#    dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
-#    dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
-#
-#    #tdi_comb.save('tdi.df')
-#    #cmc_comb.save('cmc.df')
-#    #dft_comb.save('dft.df')
-#    #dft_eos_comb.save('dft_eos.df')
-#
-#    # load dataFrames
-#
-#    # new data only
-#    #tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
-#    #cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
-#    #dft = pd.load(tabDir+'/dft_'+timestr+'.df')
-#    #dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
-#
-#    #combined
-#    #tdi = pd.load('tdi.df')
-#    #cmc = pd.load('cmc.df')
-#    #dft = pd.load('dft.df')
-#    #dft_eos = pd.load('dft_eos.df')
-#
+    # stopping before linking
+    tdi = linkCMC(tdi0,cmc)
+
+    # combine new cmc and dft tables with existing ones
+    if len(cmcPPRuns + cmcEinsteinRuns) > 0:
+        cmc_comb = updateData(cmc_old,cmc)
+    else:
+        cmc_comb = cmc
+    dft_comb = updateData(dft_old,dft,idxcol='id')
+    tdi_comb = updateData(tdi_old,tdi)
+    dft_eos_comb = updateData(dft_eos_old,dft_eos)
+
+    # save DataFrames
+    tdi.save(tabDir+'/tdi_'+timestr+'.df')
+    cmc.save(tabDir+'/cmc_'+timestr+'.df')
+    dft.save(tabDir+'/dft_'+timestr+'.df')
+    dft_eos.save(tabDir+'/dft_eos_'+timestr+'.df')
+
+    tdi_comb.save(tabDir+'/tdi_all_'+timestr+'.df')
+    cmc_comb.save(tabDir+'/cmc_all_'+timestr+'.df')
+    dft_comb.save(tabDir+'/dft_all_'+timestr+'.df')
+    dft_eos_comb.save(tabDir+'/dft_eos_all_'+timestr+'.df')
+
+    #tdi_comb.save('tdi.df')
+    #cmc_comb.save('cmc.df')
+    #dft_comb.save('dft.df')
+    #dft_eos_comb.save('dft_eos.df')
+
+    # load dataFrames
+
+    # new data only
+    #tdi = pd.load(tabDir+'/tdi_'+timestr+'.df')
+    #cmc = pd.load(tabDir+'/cmc_'+timestr+'.df')
+    #dft = pd.load(tabDir+'/dft_'+timestr+'.df')
+    #dft_eos = pd.load(tabDir+'/dft_eos_'+timestr+'.df')
+
+    #combined
+    #tdi = pd.load('tdi.df')
+    #cmc = pd.load('cmc.df')
+    #dft = pd.load('dft.df')
+    #dft_eos = pd.load('dft_eos.df')
+
     # print data location
     print 'Data directory: ' + saveDir
     print 'Table directory: '+ tabDir
